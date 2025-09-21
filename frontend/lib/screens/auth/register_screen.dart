@@ -246,6 +246,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         _buildInputField(
                           controller: _locationController,
                           hintText: 'Enter your location (city/country)',
+                          validator: (value) {
+                            // Location is optional, no validation needed
+                            return null;
+                          },
                         ),
 
                         const SizedBox(height: 16),
@@ -254,6 +258,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _phoneNumberController,
                           hintText: 'WhatsApp Number',
                           keyboardType: TextInputType.phone,
+                          validator: (value) {
+                            // Phone number is optional, no validation needed
+                            return null;
+                          },
                         ),
 
                         const SizedBox(height: 32),

@@ -2,8 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiService {
-  // Backend server sekarang jalan di dalam Flutter app
-  static const String baseUrl = 'http://localhost:5000/api';
+  // Backend server berjalan di komputer host
+  static const String baseUrl = 'http://172.19.96.1:5000/api';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   late final Dio _dio;

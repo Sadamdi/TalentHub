@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'providers/application_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/job_provider.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/auth/register_screen.dart';
+import 'screens/main_navigation.dart';
 import 'screens/splash_screen.dart';
-import 'services/backend_server.dart';
 import 'utils/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Start embedded backend server
-  final backendServer = BackendServer();
-  await backendServer.start();
 
   runApp(const TalentHubApp());
 }
@@ -26,6 +25,7 @@ class TalentHubApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => JobProvider()),
+        ChangeNotifierProvider(create: (_) => ApplicationProvider()),
       ],
       child: MaterialApp(
         title: 'Talent Hub',
@@ -60,6 +60,16 @@ class TalentHubApp extends StatelessWidget {
           ),
         ),
         home: const SplashScreen(),
+        routes: {
+          '/login': (context) => const LoginScreen(),
+          '/register': (context) => const RegisterScreen(),
+          '/main': (context) => const MainNavigation(),
+        },
+        onUnknownRoute: (settings) {
+          return MaterialPageRoute(
+            builder: (context) => const SplashScreen(),
+          );
+        },
       ),
     );
   }

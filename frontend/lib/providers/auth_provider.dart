@@ -1,4 +1,6 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+
 import '../models/user.dart';
 import '../services/api_service.dart';
 
@@ -15,7 +17,10 @@ class AuthProvider extends ChangeNotifier {
 
   void _setLoading(bool loading) {
     _isLoading = loading;
-    notifyListeners();
+    // Gunakan addPostFrameCallback untuk menghindari setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   void _clearError() {
@@ -24,7 +29,10 @@ class AuthProvider extends ChangeNotifier {
 
   void _setError(String error) {
     _error = error;
-    notifyListeners();
+    // Gunakan addPostFrameCallback untuk menghindari setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   Future<void> checkAuthStatus() async {
@@ -66,7 +74,23 @@ class AuthProvider extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      _setError('Terjadi kesalahan saat login');
+      // Handle DioError untuk mendapatkan detail error dari server
+      if (e is DioException) {
+        if (e.response != null) {
+          // Server mengembalikan response dengan error
+          final errorData = e.response!.data;
+          if (errorData is Map<String, dynamic>) {
+            _setError(errorData['message'] ?? 'Login gagal');
+          } else {
+            _setError('Login gagal');
+          }
+        } else {
+          // Network error atau server tidak merespons
+          _setError('Tidak dapat terhubung ke server');
+        }
+      } else {
+        _setError('Terjadi kesalahan saat login');
+      }
       return false;
     } finally {
       _setLoading(false);
@@ -86,15 +110,23 @@ class AuthProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final response = await _apiService.register({
+      final requestData = {
         'firstName': firstName,
         'lastName': lastName,
         'email': email,
         'password': password,
         'role': role,
-        'location': location,
-        'phoneNumber': phoneNumber,
-      });
+      };
+
+      // Hanya tambahkan location dan phoneNumber jika tidak null dan tidak kosong
+      if (location != null && location.isNotEmpty) {
+        requestData['location'] = location;
+      }
+      if (phoneNumber != null && phoneNumber.isNotEmpty) {
+        requestData['phoneNumber'] = phoneNumber;
+      }
+
+      final response = await _apiService.register(requestData);
 
       if (response.statusCode == 201) {
         final token = response.data['data']['token'];
@@ -106,7 +138,36 @@ class AuthProvider extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      _setError('Terjadi kesalahan saat registrasi');
+      // Handle DioError untuk mendapatkan detail error dari server
+      if (e is DioException) {
+        if (e.response != null) {
+          // Server mengembalikan response dengan error
+          final errorData = e.response!.data;
+          if (errorData is Map<String, dynamic>) {
+            // Jika ada array errors, ambil pesan error pertama
+            if (errorData['errors'] != null &&
+                errorData['errors'] is List &&
+                (errorData['errors'] as List).isNotEmpty) {
+              final firstError = (errorData['errors'] as List).first;
+              if (firstError is Map<String, dynamic> &&
+                  firstError['msg'] != null) {
+                _setError(firstError['msg']);
+              } else {
+                _setError(errorData['message'] ?? 'Registrasi gagal');
+              }
+            } else {
+              _setError(errorData['message'] ?? 'Registrasi gagal');
+            }
+          } else {
+            _setError('Registrasi gagal');
+          }
+        } else {
+          // Network error atau server tidak merespons
+          _setError('Tidak dapat terhubung ke server');
+        }
+      } else {
+        _setError('Terjadi kesalahan saat registrasi');
+      }
       return false;
     } finally {
       _setLoading(false);
@@ -118,7 +179,10 @@ class AuthProvider extends ChangeNotifier {
       final response = await _apiService.getCurrentUser();
       if (response.statusCode == 200) {
         _user = User.fromJson(response.data['data']['user']);
-        notifyListeners();
+        // Gunakan addPostFrameCallback untuk menghindari setState during build
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          notifyListeners();
+        });
       }
     } catch (e) {
       _setError('Gagal mendapatkan data user');
@@ -129,7 +193,10 @@ class AuthProvider extends ChangeNotifier {
     await _apiService.removeToken();
     _user = null;
     _error = null;
-    notifyListeners();
+    // Gunakan addPostFrameCallback untuk menghindari setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   Future<bool> updateProfile(Map<String, dynamic> data) async {
@@ -153,4 +220,3 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 }
-

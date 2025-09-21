@@ -20,7 +20,10 @@ class ApplicationProvider extends ChangeNotifier {
 
   void _setLoading(bool loading) {
     _isLoading = loading;
-    notifyListeners();
+    // Gunakan addPostFrameCallback untuk menghindari setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   void _clearError() {
@@ -29,7 +32,10 @@ class ApplicationProvider extends ChangeNotifier {
 
   void _setError(String error) {
     _error = error;
-    notifyListeners();
+    // Gunakan addPostFrameCallback untuk menghindari setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   void _handleError(dynamic error) {
@@ -67,9 +73,10 @@ class ApplicationProvider extends ChangeNotifier {
     try {
       final response = await _apiService.getCompanyApplications();
       if (response.statusCode == 200) {
-        _companyApplications = (response.data['data']['applications'] as List<dynamic>)
-            .map((application) => Application.fromJson(application))
-            .toList();
+        _companyApplications =
+            (response.data['data']['applications'] as List<dynamic>)
+                .map((application) => Application.fromJson(application))
+                .toList();
       }
     } catch (e) {
       _handleError(e);
@@ -85,7 +92,8 @@ class ApplicationProvider extends ChangeNotifier {
     try {
       final response = await _apiService.getApplication(applicationId);
       if (response.statusCode == 200) {
-        _selectedApplication = Application.fromJson(response.data['data']['application']);
+        _selectedApplication =
+            Application.fromJson(response.data['data']['application']);
       }
     } catch (e) {
       _handleError(e);
@@ -130,7 +138,8 @@ class ApplicationProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final response = await _apiService.updateApplicationStatus(applicationId, {
+      final response =
+          await _apiService.updateApplicationStatus(applicationId, {
         'status': status,
       });
 
@@ -138,7 +147,8 @@ class ApplicationProvider extends ChangeNotifier {
         await getCompanyApplications(); // Refresh company applications
         return true;
       } else {
-        _setError(response.data['message'] ?? 'Gagal memperbarui status lamaran');
+        _setError(
+            response.data['message'] ?? 'Gagal memperbarui status lamaran');
         return false;
       }
     } catch (e) {

@@ -48,7 +48,10 @@ class JobProvider extends ChangeNotifier {
 
   void _setLoading(bool loading) {
     _isLoading = loading;
-    notifyListeners();
+    // Gunakan addPostFrameCallback untuk menghindari setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   void _clearError() {
@@ -57,7 +60,10 @@ class JobProvider extends ChangeNotifier {
 
   void _setError(String error) {
     _error = error;
-    notifyListeners();
+    // Gunakan addPostFrameCallback untuk menghindari setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   void _handleError(dynamic error) {
