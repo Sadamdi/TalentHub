@@ -24,9 +24,22 @@ class ApiService {
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
+        print(
+            '📡 API Request: ${options.method} ${options.baseUrl}${options.path}');
+        print('📝 Headers: ${options.headers}');
         handler.next(options);
       },
+      onResponse: (response, handler) {
+        print(
+            '✅ API Response: ${response.statusCode} ${response.requestOptions.path}');
+        handler.next(response);
+      },
       onError: (error, handler) {
+        print(
+            '❌ API Error: ${error.response?.statusCode} ${error.requestOptions.path}');
+        print('❌ Error Message: ${error.message}');
+        print('❌ Error Response: ${error.response?.data}');
+
         if (error.response?.statusCode == 401) {
           // Token expired or invalid
           removeToken();
@@ -47,6 +60,58 @@ class ApiService {
 
   Future<void> removeToken() async {
     await _storage.delete(key: 'auth_token');
+  }
+
+  // Method untuk test endpoint tanpa authentication (debugging)
+  Future<Response> testEndpointWithoutAuth(String endpoint) async {
+    print('🔍 Testing endpoint without auth: $baseUrl$endpoint');
+
+    final dio = Dio(BaseOptions(
+      baseUrl: baseUrl,
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    ));
+
+    // Add logging interceptor for debugging
+    dio.interceptors.add(LogInterceptor(
+      request: true,
+      requestHeader: true,
+      requestBody: true,
+      responseHeader: true,
+      responseBody: true,
+      error: true,
+    ));
+
+    return await dio.get(endpoint);
+  }
+
+  // Method untuk test dengan base URL alternatif (untuk emulator)
+  Future<Response> testWithAlternativeUrl(
+      String endpoint, String altBaseUrl) async {
+    print('🔍 Testing with alternative URL: $altBaseUrl$endpoint');
+
+    final dio = Dio(BaseOptions(
+      baseUrl: altBaseUrl,
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    ));
+
+    dio.interceptors.add(LogInterceptor(
+      request: true,
+      requestHeader: true,
+      requestBody: true,
+      responseHeader: true,
+      responseBody: true,
+      error: true,
+    ));
+
+    return await dio.get(endpoint);
   }
 
   // Auth endpoints

@@ -23,17 +23,44 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
   }
 
   void _loadJobs() {
-    final jobProvider = Provider.of<JobProvider>(context, listen: false);
-    // Try test endpoint first for debugging
-    _apiService.testCompanyJobs().then((response) {
+    // Try test endpoint without authentication first for debugging
+    _apiService.testEndpointWithoutAuth('/jobs/test-endpoint').then((response) {
       print('Test endpoint response: ${response.data}');
+      print('✅ Test endpoint berhasil!');
+
+      // If test endpoint works, try company jobs
+      _testCompanyJobsEndpoint();
     }).catchError((error) {
-      print('Test endpoint error: $error');
-      // Fallback to regular endpoint
-      jobProvider.getCompanyJobs().catchError((error) {
-        print('Error loading jobs: $error');
-      });
+      print('❌ Test endpoint error: $error');
+      print('🔍 Mungkin ada masalah dengan base URL atau network');
+
+      // Fallback to regular endpoint with auth
+      _loadJobsWithAuth();
     });
+  }
+
+  void _testCompanyJobsEndpoint() {
+    _apiService.testCompanyJobs().then((response) {
+      print('✅ Company jobs test endpoint response: ${response.data}');
+    }).catchError((error) {
+      print('❌ Company jobs test endpoint error: $error');
+      _loadJobsWithAuth();
+    });
+  }
+
+  void _loadJobsWithAuth() {
+    final jobProvider = Provider.of<JobProvider>(context, listen: false);
+    jobProvider.getCompanyJobs().catchError((error) {
+      print('Error loading jobs with auth: $error');
+    });
+  }
+
+  Future<void> _clearTokenAndRelogin() async {
+    await _apiService.removeToken();
+    // Navigate to login screen
+    if (mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+    }
   }
 
   @override
@@ -45,9 +72,76 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadJobs,
+            tooltip: 'Refresh Jobs',
+          ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              switch (value) {
+                case 'clear_token':
+                  _clearTokenAndRelogin();
+                  break;
+                case 'test_without_auth':
+                  _apiService
+                      .testEndpointWithoutAuth('/jobs/test-endpoint')
+                      .then((response) {
+                    print('Test endpoint response: ${response.data}');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text(
+                              '✅ Test berhasil: ${response.data['message']}')),
+                    );
+                  }).catchError((error) {
+                    print('Test endpoint error: $error');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('❌ Test error: $error')),
+                    );
+                  });
+                  break;
+                case 'test_alternative_url':
+                  _apiService
+                      .testWithAlternativeUrl(
+                          '/jobs/test-endpoint', 'http://10.0.2.2:2550/api')
+                      .then((response) {
+                    print('Alternative URL test response: ${response.data}');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text(
+                              '✅ Alternative URL berhasil: ${response.data['message']}')),
+                    );
+                  }).catchError((error) {
+                    print('Alternative URL test error: $error');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text('❌ Alternative URL error: $error')),
+                    );
+                  });
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'clear_token',
+                child: Text('🔄 Clear Token & Relogin'),
+              ),
+              const PopupMenuItem(
+                value: 'test_without_auth',
+                child: Text('🧪 Test Endpoint (No Auth)'),
+              ),
+              const PopupMenuItem(
+                value: 'test_alternative_url',
+                child: Text('📱 Test Alternative URL'),
+              ),
+            ],
+          ),
+          IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
-              // TODO: Navigate to create job screen
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (context) => const CompanyCreateJobScreen()),
+              );
             },
           ),
         ],
