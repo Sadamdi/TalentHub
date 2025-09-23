@@ -81,6 +81,17 @@ router.get('/', async (req, res) => {
 	}
 });
 
+// @route   GET /api/jobs/test
+// @desc    Test endpoint
+// @access  Public
+router.get('/test', (req, res) => {
+	res.json({
+		success: true,
+		message: 'Jobs endpoint is working',
+		timestamp: new Date().toISOString(),
+	});
+});
+
 // @route   GET /api/jobs/:id
 // @desc    Get job by ID
 // @access  Public
@@ -320,9 +331,21 @@ router.get('/company/my-jobs', async (req, res) => {
 
 		// Verify token manually
 		const jwt = require('jsonwebtoken');
-		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		let decoded;
+		try {
+			decoded = jwt.verify(token, process.env.JWT_SECRET);
+			console.log('Token decoded:', decoded);
+		} catch (jwtError) {
+			console.log('JWT verification error:', jwtError.message);
+			return res.status(401).json({
+				success: false,
+				message: 'Token tidak valid'
+			});
+		}
+
 		const User = require('../models/User');
 		const user = await User.findById(decoded.userId).select('-password');
+		console.log('User found:', user);
 
 		if (!user || !user.isActive || user.role !== 'company') {
 			return res.status(401).json({
@@ -374,26 +397,6 @@ router.get('/company/my-jobs', async (req, res) => {
 		res.status(500).json({
 			success: false,
 			message: 'Terjadi kesalahan pada server',
-		});
-	}
-});
-
-// @route   GET /api/jobs/test
-// @desc    Test endpoint
-// @access  Public
-router.get('/test', async (req, res) => {
-	try {
-		console.log('Test endpoint called');
-		res.json({
-			success: true,
-			message: 'Jobs endpoint is working',
-			timestamp: new Date().toISOString(),
-		});
-	} catch (error) {
-		console.error('Test endpoint error:', error);
-		res.status(500).json({
-			success: false,
-			message: 'Test endpoint error',
 		});
 	}
 });
