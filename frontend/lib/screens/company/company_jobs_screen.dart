@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/job_provider.dart';
+import '../../services/api_service.dart';
 import '../../utils/app_colors.dart';
 import 'company_create_job_screen.dart';
 
@@ -13,6 +14,8 @@ class CompanyJobsScreen extends StatefulWidget {
 }
 
 class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
+  final _apiService = ApiService();
+
   @override
   void initState() {
     super.initState();
@@ -21,8 +24,15 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
 
   void _loadJobs() {
     final jobProvider = Provider.of<JobProvider>(context, listen: false);
-    jobProvider.getCompanyJobs().catchError((error) {
-      print('Error loading jobs: $error');
+    // Try test endpoint first for debugging
+    _apiService.testCompanyJobs().then((response) {
+      print('Test endpoint response: ${response.data}');
+    }).catchError((error) {
+      print('Test endpoint error: $error');
+      // Fallback to regular endpoint
+      jobProvider.getCompanyJobs().catchError((error) {
+        print('Error loading jobs: $error');
+      });
     });
   }
 

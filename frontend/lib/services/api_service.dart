@@ -107,6 +107,10 @@ class ApiService {
     return await _dio.get('/jobs/company-jobs');
   }
 
+  Future<Response> testCompanyJobs() async {
+    return await _dio.get('/jobs/test-company-jobs');
+  }
+
   Future<Response> createJob(Map<String, dynamic> data) async {
     return await _dio.post('/jobs', data: data);
   }

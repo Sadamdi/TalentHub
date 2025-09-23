@@ -93,6 +93,145 @@ router.get('/test-endpoint', (req, res) => {
 	});
 });
 
+// @route   GET /api/jobs/debug-jwt
+// @desc    Debug JWT token
+// @access  Public
+router.get('/debug-jwt', async (req, res) => {
+	try {
+		const token = req.header('Authorization')?.replace('Bearer ', '');
+
+		if (!token) {
+			return res.json({
+				success: false,
+				message: 'No token provided',
+				debug: {
+					jwtSecretLength: process.env.JWT_SECRET?.length || 0,
+					jwtSecretPreview:
+						process.env.JWT_SECRET?.substring(0, 10) + '...' || 'undefined',
+				},
+			});
+		}
+
+		const jwt = require('jsonwebtoken');
+
+		try {
+			const decoded = jwt.verify(token, process.env.JWT_SECRET);
+			res.json({
+				success: true,
+				message: 'Token is valid',
+				tokenData: decoded,
+				debug: {
+					jwtSecretLength: process.env.JWT_SECRET?.length || 0,
+					jwtSecretPreview:
+						process.env.JWT_SECRET?.substring(0, 10) + '...' || 'undefined',
+				},
+			});
+		} catch (jwtError) {
+			res.json({
+				success: false,
+				message: 'Token is invalid: ' + jwtError.message,
+				error: jwtError.message,
+				debug: {
+					jwtSecretLength: process.env.JWT_SECRET?.length || 0,
+					jwtSecretPreview:
+						process.env.JWT_SECRET?.substring(0, 10) + '...' || 'undefined',
+					tokenPreview: token.substring(0, 20) + '...',
+				},
+			});
+		}
+	} catch (error) {
+		res.status(500).json({
+			success: false,
+			message: 'Server error: ' + error.message,
+		});
+	}
+});
+
+// @route   GET /api/jobs/test-company-jobs
+// @desc    Test company jobs endpoint (debugging)
+// @access  Public (for testing)
+router.get('/test-company-jobs', async (req, res) => {
+	try {
+		// Get token from header (optional for testing)
+		const token = req.header('Authorization')?.replace('Bearer ', '');
+
+		if (!token) {
+			return res.json({
+				success: false,
+				message: 'No token provided - this endpoint requires authentication',
+				debug: {
+					jwtSecretLength: process.env.JWT_SECRET?.length || 0,
+					jwtSecretPreview:
+						process.env.JWT_SECRET?.substring(0, 10) + '...' || 'undefined',
+				},
+			});
+		}
+
+		const jwt = require('jsonwebtoken');
+
+		try {
+			const decoded = jwt.verify(token, process.env.JWT_SECRET);
+			const User = require('../models/User');
+			const user = await User.findById(decoded.userId).select('-password');
+
+			if (!user || !user.isActive || user.role !== 'company') {
+				return res.status(401).json({
+					success: false,
+					message: 'Invalid user or role',
+				});
+			}
+
+			const Company = require('../models/Company');
+			const company = await Company.findOne({ userId: user._id });
+
+			if (!company) {
+				return res.status(404).json({
+					success: false,
+					message: 'Company profile not found',
+				});
+			}
+
+			const Job = require('../models/Job');
+			const jobs = await Job.find({ companyId: company._id })
+				.populate('companyId', 'companyName logo')
+				.sort({ createdAt: -1 });
+
+			res.json({
+				success: true,
+				message: 'Company jobs retrieved successfully',
+				data: {
+					jobs,
+					company: {
+						id: company._id,
+						name: company.companyName,
+					},
+					user: {
+						id: user._id,
+						email: user.email,
+						role: user.role,
+					},
+				},
+			});
+		} catch (jwtError) {
+			res.json({
+				success: false,
+				message: 'Token verification failed: ' + jwtError.message,
+				debug: {
+					jwtSecretLength: process.env.JWT_SECRET?.length || 0,
+					jwtSecretPreview:
+						process.env.JWT_SECRET?.substring(0, 10) + '...' || 'undefined',
+					tokenPreview: token.substring(0, 20) + '...',
+				},
+			});
+		}
+	} catch (error) {
+		res.status(500).json({
+			success: false,
+			message: 'Server error: ' + error.message,
+		});
+	}
+});
+
 // @route   GET /api/jobs/:id
 // @desc    Get job by ID
 // @access  Public
@@ -338,9 +477,14 @@ router.get('/company-jobs', async (req, res) => {
 			console.log('Token decoded:', decoded);
 		} catch (jwtError) {
 			console.log('JWT verification error:', jwtError.message);
+			console.log('JWT_SECRET used:', process.env.JWT_SECRET);
+			console.log(
+				'Token received:',
+				token ? token.substring(0, 20) + '...' : 'null'
+			);
 			return res.status(401).json({
 				success: false,
-				message: 'Token tidak valid',
+				message: 'Token tidak valid: ' + jwtError.message,
 			});
 		}
 
