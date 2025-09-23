@@ -340,7 +340,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   GestureDetector(
                     onTap: () async {
-                      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                      final authProvider =
+                          Provider.of<AuthProvider>(context, listen: false);
                       final result = await authProvider.signInWithGoogle();
 
                       if (result == 'success' && mounted) {

@@ -208,14 +208,12 @@ router.post(
 // @access  Public
 router.post('/google', async (req, res) => {
 	try {
-		const { email, firstName, lastName, googleId, accessToken, idToken } = req.body;
+		const { email, firstName, lastName, googleId, accessToken, idToken } =
+			req.body;
 
 		// Cari user berdasarkan email atau googleId
 		let user = await User.findOne({
-			$or: [
-				{ email },
-				{ googleId }
-			]
+			$or: [{ email }, { googleId }],
 		});
 
 		let isNewUser = false;
@@ -255,7 +253,9 @@ router.post('/google', async (req, res) => {
 
 		res.status(isNewUser ? 201 : 200).json({
 			success: true,
-			message: isNewUser ? 'Registrasi Google berhasil' : 'Login Google berhasil',
+			message: isNewUser
+				? 'Registrasi Google berhasil'
+				: 'Login Google berhasil',
 			data: {
 				token,
 				user: {
