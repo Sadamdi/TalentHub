@@ -314,7 +314,7 @@ router.get('/company/my-jobs', async (req, res) => {
 		if (!token) {
 			return res.status(401).json({
 				success: false,
-				message: 'Token akses diperlukan'
+				message: 'Token akses diperlukan',
 			});
 		}
 
@@ -327,7 +327,7 @@ router.get('/company/my-jobs', async (req, res) => {
 		if (!user || !user.isActive || user.role !== 'company') {
 			return res.status(401).json({
 				success: false,
-				message: 'Token tidak valid atau role tidak sesuai'
+				message: 'Token tidak valid atau role tidak sesuai',
 			});
 		}
 
@@ -382,11 +382,20 @@ router.get('/company/my-jobs', async (req, res) => {
 // @desc    Test endpoint
 // @access  Public
 router.get('/test', async (req, res) => {
-	res.json({
-		success: true,
-		message: 'Jobs endpoint is working',
-		timestamp: new Date().toISOString()
-	});
+	try {
+		console.log('Test endpoint called');
+		res.json({
+			success: true,
+			message: 'Jobs endpoint is working',
+			timestamp: new Date().toISOString(),
+		});
+	} catch (error) {
+		console.error('Test endpoint error:', error);
+		res.status(500).json({
+			success: false,
+			message: 'Test endpoint error',
+		});
+	}
 });
 
 // @route   GET /api/jobs/recommendations
