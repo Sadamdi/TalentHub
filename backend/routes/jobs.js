@@ -81,10 +81,10 @@ router.get('/', async (req, res) => {
 	}
 });
 
-// @route   GET /api/jobs/test
+// @route   GET /api/jobs/test-endpoint
 // @desc    Test endpoint
 // @access  Public
-router.get('/test', (req, res) => {
+router.get('/test-endpoint', (req, res) => {
 	console.log('Test endpoint called successfully');
 	res.json({
 		success: true,
@@ -316,10 +316,10 @@ router.delete('/:id', [auth, requireRole(['company'])], async (req, res) => {
 	}
 });
 
-// @route   GET /api/jobs/company/my-jobs
+// @route   GET /api/jobs/company-jobs
 // @desc    Get company's jobs
 // @access  Private (Company only)
-router.get('/company/my-jobs', async (req, res) => {
+router.get('/company-jobs', async (req, res) => {
 	try {
 		// Get token from header
 		const token = req.header('Authorization')?.replace('Bearer ', '');
