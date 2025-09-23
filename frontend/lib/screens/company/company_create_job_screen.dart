@@ -27,7 +27,7 @@ class _CompanyCreateJobScreenState extends State<CompanyCreateJobScreen> {
 
   // Form variables
   String _selectedJobType = 'full_time';
-  String _selectedCategory = 'technology';
+  String _selectedCategory = 'developer';
   String _selectedExperienceLevel = '1-2_years';
   bool _isLoading = false;
 
@@ -71,7 +71,10 @@ class _CompanyCreateJobScreenState extends State<CompanyCreateJobScreen> {
   }
 
   Future<void> _createJob() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      print('Form validation failed');
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -94,7 +97,8 @@ class _CompanyCreateJobScreenState extends State<CompanyCreateJobScreen> {
     try {
       final jobProvider = Provider.of<JobProvider>(context, listen: false);
 
-      final success = await jobProvider.createJob({
+      // Prepare job data
+      final jobData = {
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
         'requirements': _requirementsController.text
@@ -129,13 +133,18 @@ class _CompanyCreateJobScreenState extends State<CompanyCreateJobScreen> {
             .split('\n')
             .where((s) => s.isNotEmpty)
             .toList(),
-      });
+      };
+
+      print('Creating job with data: $jobData');
+
+      final success = await jobProvider.createJob(jobData);
 
       setState(() {
         _isLoading = false;
       });
 
       if (success && mounted) {
+        print('Job creation successful');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Job created successfully!'),
@@ -144,6 +153,7 @@ class _CompanyCreateJobScreenState extends State<CompanyCreateJobScreen> {
         );
         Navigator.of(context).pop(); // Go back to jobs screen
       } else {
+        print('Job creation failed: ${jobProvider.error}');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(jobProvider.error ?? 'Failed to create job'),
@@ -152,6 +162,7 @@ class _CompanyCreateJobScreenState extends State<CompanyCreateJobScreen> {
         );
       }
     } catch (e) {
+      print('Error creating job: $e');
       setState(() {
         _isLoading = false;
       });

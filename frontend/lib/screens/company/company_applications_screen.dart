@@ -22,7 +22,9 @@ class _CompanyApplicationsScreenState extends State<CompanyApplicationsScreen> {
   void _loadApplications() {
     final applicationProvider =
         Provider.of<ApplicationProvider>(context, listen: false);
-    applicationProvider.getCompanyApplications();
+    applicationProvider.getCompanyApplications().catchError((error) {
+      print('Error loading applications: $error');
+    });
   }
 
   @override

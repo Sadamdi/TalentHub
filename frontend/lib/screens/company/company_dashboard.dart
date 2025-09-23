@@ -22,7 +22,9 @@ class _CompanyDashboardState extends State<CompanyDashboard> {
 
   void _loadData() {
     final jobProvider = Provider.of<JobProvider>(context, listen: false);
-    jobProvider.getCompanyJobs();
+    jobProvider.getCompanyJobs().catchError((error) {
+      print('Error loading dashboard data: $error');
+    });
   }
 
   @override

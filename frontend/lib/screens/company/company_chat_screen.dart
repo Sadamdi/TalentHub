@@ -21,7 +21,9 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
   void _loadApplications() {
     final applicationProvider =
         Provider.of<ApplicationProvider>(context, listen: false);
-    applicationProvider.getCompanyApplications();
+    applicationProvider.getCompanyApplications().catchError((error) {
+      print('Error loading chat applications: $error');
+    });
   }
 
   @override

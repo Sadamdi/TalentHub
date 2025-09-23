@@ -21,7 +21,9 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
 
   void _loadJobs() {
     final jobProvider = Provider.of<JobProvider>(context, listen: false);
-    jobProvider.getCompanyJobs();
+    jobProvider.getCompanyJobs().catchError((error) {
+      print('Error loading jobs: $error');
+    });
   }
 
   @override
