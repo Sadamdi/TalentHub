@@ -4,6 +4,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class ApiService {
   // Backend server berjalan di server publik
   static const String baseUrl = 'http://43.157.211.134:2550/api';
+
+  // Alternative URLs untuk debugging
+  static const String localhostUrl =
+      'http://10.0.2.2:2550/api'; // Untuk emulator Android
+  static const String ipv4Url =
+      'http://192.168.1.100:2550/api'; // Contoh IP lokal
+
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   late final Dio _dio;
@@ -11,7 +18,7 @@ class ApiService {
   ApiService() {
     _dio = Dio(BaseOptions(
       baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 30),
       headers: {
         'Content-Type': 'application/json',
@@ -68,7 +75,7 @@ class ApiService {
 
     final dio = Dio(BaseOptions(
       baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 30),
       headers: {
         'Content-Type': 'application/json',
@@ -95,7 +102,7 @@ class ApiService {
 
     final dio = Dio(BaseOptions(
       baseUrl: altBaseUrl,
-      connectTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 30),
       headers: {
         'Content-Type': 'application/json',
@@ -112,6 +119,80 @@ class ApiService {
     ));
 
     return await dio.get(endpoint);
+  }
+
+  // Method untuk test semua base URL yang tersedia
+  Future<Map<String, dynamic>> testAllUrls(String endpoint) async {
+    print('🔍 Testing all available URLs for endpoint: $endpoint');
+
+    final urls = {
+      'public_ip': baseUrl,
+      'localhost': localhostUrl,
+      'ipv4': ipv4Url,
+    };
+
+    final results = <String, dynamic>{};
+
+    for (var entry in urls.entries) {
+      try {
+        print('🧪 Testing ${entry.key}: ${entry.value}$endpoint');
+        final response = await testWithAlternativeUrl(endpoint, entry.value);
+        results[entry.key] = {
+          'success': true,
+          'statusCode': response.statusCode,
+          'data': response.data,
+        };
+        print('✅ ${entry.key} berhasil: ${response.statusCode}');
+      } catch (e) {
+        results[entry.key] = {
+          'success': false,
+          'error': e.toString(),
+        };
+        print('❌ ${entry.key} error: $e');
+      }
+    }
+
+    return results;
+  }
+
+  // Method untuk ping server dan cek connectivity
+  Future<Map<String, dynamic>> pingServer() async {
+    print('🔍 Pinging server...');
+
+    final urls = {
+      'public_ip': 'http://43.157.211.134:2550',
+      'localhost': 'http://10.0.2.2:2550',
+      'ipv4': 'http://192.168.1.100:2550',
+    };
+
+    final results = <String, dynamic>{};
+
+    for (var entry in urls.entries) {
+      try {
+        print('🧪 Pinging ${entry.key}: ${entry.value}');
+        final response = await Dio().get('${entry.value}/api/jobs/ping',
+            options: Options(
+              sendTimeout: const Duration(seconds: 10),
+              receiveTimeout: const Duration(seconds: 10),
+            ));
+        results[entry.key] = {
+          'success': true,
+          'statusCode': response.statusCode,
+          'responseTime': DateTime.now().toString(),
+          'serverInfo': response.data['serverInfo'],
+        };
+        print('✅ ${entry.key} reachable: ${response.statusCode}');
+      } catch (e) {
+        results[entry.key] = {
+          'success': false,
+          'error': e.toString(),
+          'errorTime': DateTime.now().toString(),
+        };
+        print('❌ ${entry.key} unreachable: $e');
+      }
+    }
+
+    return results;
   }
 
   // Auth endpoints

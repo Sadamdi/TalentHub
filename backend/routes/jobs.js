@@ -93,6 +93,23 @@ router.get('/test-endpoint', (req, res) => {
 	});
 });
 
+// @route   GET /api/jobs/ping
+// @desc    Simple ping endpoint for connectivity testing
+// @access  Public
+router.get('/ping', (req, res) => {
+	console.log('Ping endpoint called successfully');
+	res.json({
+		success: true,
+		message: 'Server is reachable',
+		timestamp: new Date().toISOString(),
+		serverInfo: {
+			port: process.env.PORT || 2550,
+			nodeVersion: process.version,
+			uptime: process.uptime(),
+		},
+	});
+});
+
 // @route   GET /api/jobs/debug-jwt
 // @desc    Debug JWT token
 // @access  Public

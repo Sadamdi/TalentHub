@@ -118,6 +118,38 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
                     );
                   });
                   break;
+                case 'test_all_urls':
+                  _apiService
+                      .testAllUrls('/jobs/test-endpoint')
+                      .then((results) {
+                    print('All URLs test results: $results');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text(
+                              '✅ Lihat console untuk hasil test semua URL')),
+                    );
+                  }).catchError((error) {
+                    print('All URLs test error: $error');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('❌ All URLs test error: $error')),
+                    );
+                  });
+                  break;
+                case 'ping_server':
+                  _apiService.pingServer().then((results) {
+                    print('Server ping results: $results');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content:
+                              Text('✅ Lihat console untuk hasil ping server')),
+                    );
+                  }).catchError((error) {
+                    print('Server ping error: $error');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('❌ Server ping error: $error')),
+                    );
+                  });
+                  break;
               }
             },
             itemBuilder: (context) => [
@@ -132,6 +164,14 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
               const PopupMenuItem(
                 value: 'test_alternative_url',
                 child: Text('📱 Test Alternative URL'),
+              ),
+              const PopupMenuItem(
+                value: 'test_all_urls',
+                child: Text('🌐 Test All URLs'),
+              ),
+              const PopupMenuItem(
+                value: 'ping_server',
+                child: Text('📡 Ping Server'),
               ),
             ],
           ),
