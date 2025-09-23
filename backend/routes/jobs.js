@@ -85,6 +85,7 @@ router.get('/', async (req, res) => {
 // @desc    Test endpoint
 // @access  Public
 router.get('/test', (req, res) => {
+	console.log('Test endpoint called successfully');
 	res.json({
 		success: true,
 		message: 'Jobs endpoint is working',
@@ -339,7 +340,7 @@ router.get('/company/my-jobs', async (req, res) => {
 			console.log('JWT verification error:', jwtError.message);
 			return res.status(401).json({
 				success: false,
-				message: 'Token tidak valid'
+				message: 'Token tidak valid',
 			});
 		}
 
