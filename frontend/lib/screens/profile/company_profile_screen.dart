@@ -145,7 +145,8 @@ class CompanyProfileScreen extends StatelessWidget {
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (context) => const EditCompanyProfileScreen(),
+                              builder: (context) =>
+                                  const EditCompanyProfileScreen(),
                             ),
                           );
                         },
@@ -292,4 +293,3 @@ class CompanyProfileScreen extends StatelessWidget {
     );
   }
 }
-

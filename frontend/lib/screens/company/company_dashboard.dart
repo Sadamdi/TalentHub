@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/job_provider.dart';
 import '../../utils/app_colors.dart';
+import 'company_create_job_screen.dart';
 
 class CompanyDashboard extends StatefulWidget {
   const CompanyDashboard({super.key});
@@ -121,7 +122,12 @@ class _CompanyDashboardState extends State<CompanyDashboard> {
                             Icons.add,
                             AppColors.primary,
                             () {
-                              // TODO: Navigate to create job screen
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const CompanyCreateJobScreen(),
+                                ),
+                              );
                             },
                           ),
                         ),
@@ -133,7 +139,14 @@ class _CompanyDashboardState extends State<CompanyDashboard> {
                             Icons.people,
                             AppColors.secondary,
                             () {
-                              // TODO: Navigate to applications screen
+                              // Navigate to applications screen
+                              // This will be handled by the bottom navigation
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      'Use Applications tab to view applications'),
+                                ),
+                              );
                             },
                           ),
                         ),
@@ -150,6 +163,12 @@ class _CompanyDashboardState extends State<CompanyDashboard> {
                             AppColors.info,
                             () {
                               // TODO: Navigate to analytics screen
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content:
+                                      Text('Analytics feature coming soon!'),
+                                ),
+                              );
                             },
                           ),
                         ),

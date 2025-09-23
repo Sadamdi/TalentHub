@@ -201,6 +201,96 @@ router.get('/me', [auth, requireRole(['talent'])], async (req, res) => {
 	}
 });
 
+// @route   GET /api/applications/company
+// @desc    Get applications for company (Company only)
+// @access  Private (Company only)
+router.get('/company', [auth, requireRole(['company'])], async (req, res) => {
+	try {
+		const company = await Company.findOne({ userId: req.user._id });
+		if (!company) {
+			return res.status(404).json({
+				success: false,
+				message: 'Profil perusahaan tidak ditemukan',
+			});
+		}
+
+		const page = parseInt(req.query.page) || 1;
+		const limit = parseInt(req.query.limit) || 10;
+		const skip = (page - 1) * limit;
+
+		// Filter by status if provided
+		const filter = { companyId: company._id };
+		if (req.query.status) {
+			filter.status = req.query.status;
+		}
+
+		const applications = await Application.find(filter)
+			.populate([
+				{
+					path: 'talentId',
+					select: 'name skills experience',
+					populate: { path: 'userId', select: 'email' },
+				},
+				{
+					path: 'jobId',
+					select: 'title location salary jobType experienceLevel',
+					populate: { path: 'companyId', select: 'companyName' },
+				},
+			])
+			.sort({ appliedAt: -1 })
+			.skip(skip)
+			.limit(limit);
+
+		const total = await Application.countDocuments(filter);
+
+		// Get application statistics
+		const stats = await Application.aggregate([
+			{ $match: { companyId: company._id } },
+			{
+				$group: {
+					_id: '$status',
+					count: { $sum: 1 },
+				},
+			},
+		]);
+
+		const statusStats = {
+			pending: 0,
+			reviewed: 0,
+			interview: 0,
+			hired: 0,
+			rejected: 0,
+		};
+
+		stats.forEach((stat) => {
+			if (statusStats.hasOwnProperty(stat._id)) {
+				statusStats[stat._id] = stat.count;
+			}
+		});
+
+		res.json({
+			success: true,
+			data: {
+				applications,
+				pagination: {
+					currentPage: page,
+					totalPages: Math.ceil(total / limit),
+					totalApplications: total,
+					hasNext: page < Math.ceil(total / limit),
+					hasPrev: page > 1,
+				},
+				statistics: statusStats,
+			},
+		});
+	} catch (error) {
+		console.error('Get company applications error:', error);
+		res.status(500).json({
+			success: false,
+			message: 'Terjadi kesalahan pada server',
+		});
+	}
+});
+
 // @route   GET /api/applications/:id
 // @desc    Get application details
 // @access  Private

@@ -6,8 +6,10 @@ import '../utils/app_colors.dart';
 import 'applications/application_tracker_screen.dart';
 import 'chat/chat_screen.dart';
 import 'company/company_applications_screen.dart';
+import 'company/company_chat_screen.dart';
 import 'company/company_dashboard.dart';
 import 'company/company_jobs_screen.dart';
+import 'company/company_profile_screen.dart';
 import 'profile/profile_screen.dart';
 import 'talent/talent_dashboard.dart';
 
@@ -66,12 +68,13 @@ class _MainNavigationState extends State<MainNavigation> {
             ),
           ];
         } else {
-          // Company screens
+          // Company screens (5 menus)
           screens = [
             const CompanyDashboard(),
             const CompanyJobsScreen(),
             const CompanyApplicationsScreen(),
-            const ProfileScreen(),
+            const CompanyChatScreen(), // Chat with applicants
+            const CompanyProfileScreen(),
           ];
           bottomNavItems = const [
             BottomNavigationBarItem(
@@ -88,6 +91,11 @@ class _MainNavigationState extends State<MainNavigation> {
               icon: Icon(Icons.people_outline),
               activeIcon: Icon(Icons.people),
               label: 'Applications',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.chat_bubble_outline),
+              activeIcon: Icon(Icons.chat_bubble),
+              label: 'Chat',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),

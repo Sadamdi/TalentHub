@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/job_provider.dart';
 import '../../utils/app_colors.dart';
+import 'company_create_job_screen.dart';
 
 class CompanyJobsScreen extends StatefulWidget {
   const CompanyJobsScreen({super.key});
@@ -106,7 +107,11 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
-                      // TODO: Navigate to create job screen
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const CompanyCreateJobScreen(),
+                        ),
+                      );
                     },
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
@@ -270,7 +275,11 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // TODO: Navigate to create job screen
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const CompanyCreateJobScreen(),
+            ),
+          );
         },
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add),
