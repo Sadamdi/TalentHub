@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/application.dart';
 import '../utils/app_colors.dart';
 
@@ -81,9 +82,11 @@ class ApplicationCard extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(application.status).withOpacity(0.1),
+                      color:
+                          _getStatusColor(application.status).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -98,11 +101,11 @@ class ApplicationCard extends StatelessWidget {
                   ),
                 ],
               ),
-
               const SizedBox(height: 8),
-
               Text(
-                application.job?.company?.companyName ?? 'Perusahaan',
+                application.companyName ??
+                    application.job?.company?.companyName ??
+                    'Perusahaan',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -110,9 +113,7 @@ class ApplicationCard extends StatelessWidget {
                   fontFamily: 'Poppins',
                 ),
               ),
-
               const SizedBox(height: 8),
-
               Row(
                 children: [
                   Icon(
@@ -135,9 +136,7 @@ class ApplicationCard extends StatelessWidget {
                   ),
                 ],
               ),
-
               const SizedBox(height: 8),
-
               Row(
                 children: [
                   Icon(
@@ -178,4 +177,3 @@ class ApplicationCard extends StatelessWidget {
     }
   }
 }
-

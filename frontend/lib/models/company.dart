@@ -23,12 +23,14 @@ class Company {
     return Company(
       id: json['_id'],
       companyName: json['companyName'],
-      description: json['description'],
+      description: json['description'] ?? '',
       logo: json['logo'],
       website: json['website'],
       industry: json['industry'],
       location: json['location'],
-      createdAt: DateTime.parse(json['createdAt']),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
     );
   }
 

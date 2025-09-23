@@ -2,8 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiService {
-  // Backend server berjalan di komputer host
-  static const String baseUrl = 'http://172.19.96.1:5000/api';
+  // Backend server berjalan di server publik
+  static const String baseUrl = 'http://43.157.211.134:2550/api';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   late final Dio _dio;
@@ -56,6 +56,10 @@ class ApiService {
 
   Future<Response> register(Map<String, dynamic> data) async {
     return await _dio.post('/auth/register', data: data);
+  }
+
+  Future<Response> googleSignIn(Map<String, dynamic> data) async {
+    return await _dio.post('/auth/google', data: data);
   }
 
   Future<Response> getCurrentUser() async {

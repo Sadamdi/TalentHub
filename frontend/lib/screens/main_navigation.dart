@@ -4,6 +4,10 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/app_colors.dart';
 import 'applications/application_tracker_screen.dart';
+import 'chat/chat_screen.dart';
+import 'company/company_applications_screen.dart';
+import 'company/company_dashboard.dart';
+import 'company/company_jobs_screen.dart';
 import 'profile/profile_screen.dart';
 import 'talent/talent_dashboard.dart';
 
@@ -36,7 +40,7 @@ class _MainNavigationState extends State<MainNavigation> {
           screens = [
             const TalentDashboard(),
             const ApplicationTrackerScreen(),
-            const ApplicationTrackerScreen(), // Placeholder for Chats
+            const ChatScreen(), // Chat Screen
             const ProfileScreen(),
           ];
           bottomNavItems = const [
@@ -46,9 +50,9 @@ class _MainNavigationState extends State<MainNavigation> {
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.bookmark_outline),
-              activeIcon: Icon(Icons.bookmark),
-              label: 'Favorite',
+              icon: Icon(Icons.assignment_outlined),
+              activeIcon: Icon(Icons.assignment),
+              label: 'Lamaran Saya',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.chat_bubble_outline),
@@ -64,9 +68,9 @@ class _MainNavigationState extends State<MainNavigation> {
         } else {
           // Company screens
           screens = [
-            const TalentDashboard(), // Placeholder for company dashboard
-            const ApplicationTrackerScreen(), // Placeholder for company jobs
-            const ApplicationTrackerScreen(), // Placeholder for applications
+            const CompanyDashboard(),
+            const CompanyJobsScreen(),
+            const CompanyApplicationsScreen(),
             const ProfileScreen(),
           ];
           bottomNavItems = const [

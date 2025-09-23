@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../models/user.dart';
 import '../services/api_service.dart';
@@ -189,6 +190,24 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> _isProfileComplete() async {
+    try {
+      final response = await _apiService.getCurrentUser();
+      if (response.statusCode == 200) {
+        final userData = response.data['data']['user'];
+        // Check if essential profile data is filled
+        // For now, we consider profile complete if user has location or phone number
+        return (userData['location'] != null &&
+                userData['location'].toString().isNotEmpty) ||
+            (userData['phoneNumber'] != null &&
+                userData['phoneNumber'].toString().isNotEmpty);
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<void> logout() async {
     await _apiService.removeToken();
     _user = null;
@@ -215,6 +234,74 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       _setError('Terjadi kesalahan saat memperbarui profil');
       return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<String?> signInWithGoogle() async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        scopes: ['email', 'profile'],
+      );
+
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+      if (googleUser == null) {
+        _setError('Google Sign In dibatalkan');
+        return null;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final response = await _apiService.googleSignIn({
+        'email': googleUser.email,
+        'firstName': googleUser.displayName?.split(' ').first ?? '',
+        'lastName':
+            googleUser.displayName?.split(' ').sublist(1).join(' ') ?? '',
+        'googleId': googleUser.id,
+        'accessToken': googleAuth.accessToken,
+        'idToken': googleAuth.idToken,
+      });
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final token = response.data['data']['token'];
+        await _apiService.setToken(token);
+        await _getCurrentUser();
+
+        // Check if user profile is complete
+        final isProfileComplete = await _isProfileComplete();
+        if (!isProfileComplete) {
+          // Return special status to indicate profile needs completion
+          return 'profile_incomplete';
+        }
+
+        return 'success';
+      } else {
+        _setError(response.data['message'] ?? 'Google Sign In gagal');
+        return null;
+      }
+    } catch (e) {
+      if (e is DioException) {
+        if (e.response != null) {
+          final errorData = e.response!.data;
+          if (errorData is Map<String, dynamic>) {
+            _setError(errorData['message'] ?? 'Google Sign In gagal');
+          } else {
+            _setError('Google Sign In gagal');
+          }
+        } else {
+          _setError('Tidak dapat terhubung ke server');
+        }
+      } else {
+        // Log the actual error for debugging
+        _setError('Terjadi kesalahan saat Google Sign In: ${e.toString()}');
+      }
+      return null;
     } finally {
       _setLoading(false);
     }

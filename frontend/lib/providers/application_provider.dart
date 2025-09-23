@@ -130,6 +130,33 @@ class ApplicationProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> cancelApplication(String applicationId) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      // TODO: Add cancel application endpoint in API service
+      // For now, we'll update status to 'cancelled'
+      final response =
+          await _apiService.updateApplicationStatus(applicationId, {
+        'status': 'cancelled',
+      });
+
+      if (response.statusCode == 200) {
+        await getApplications(); // Refresh applications
+        return true;
+      } else {
+        _setError(response.data['message'] ?? 'Gagal membatalkan lamaran');
+        return false;
+      }
+    } catch (e) {
+      _handleError(e);
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<bool> updateApplicationStatus({
     required String applicationId,
     required String status,

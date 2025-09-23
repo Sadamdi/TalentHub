@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../providers/auth_provider.dart';
 import '../../utils/app_colors.dart';
 import '../main_navigation.dart';
+import 'profile_completion_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -108,36 +110,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   Container(
                     height: double.infinity,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 125,
-                          height: 37,
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(100),
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                   Expanded(
                     child: Container(
                       height: double.infinity,
                       padding: const EdgeInsets.only(right: 11),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 27.40,
-                            height: 13,
-                            child: Stack(),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ],
@@ -164,6 +141,60 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       fontFamily: 'Poppins',
                     ),
                     textAlign: TextAlign.center,
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Back button dan Have account text
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: AppColors.shadowLight,
+                                blurRadius: 4,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      const Text(
+                        'Have an account? ',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text(
+                          'Login instead',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Poppins',
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
 
                   const SizedBox(height: 32),
@@ -207,7 +238,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             if (value == null || value.isEmpty) {
                               return 'Email diperlukan';
                             }
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                .hasMatch(value)) {
                               return 'Format email tidak valid';
                             }
                             return null;
@@ -222,7 +254,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           obscureText: _obscurePassword,
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                              _obscurePassword
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
                             ),
                             onPressed: () {
                               setState(() {
@@ -281,91 +315,80 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                         const SizedBox(height: 16),
 
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                height: 60,
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: AppColors.shadowLight,
-                                      blurRadius: 4,
-                                      offset: Offset(0, 1),
-                                    ),
-                                  ],
+                        GestureDetector(
+                          onTap: () async {
+                            final authProvider = Provider.of<AuthProvider>(
+                                context,
+                                listen: false);
+                            final result =
+                                await authProvider.signInWithGoogle();
+
+                            if (result == 'success' && mounted) {
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        const MainNavigation()),
+                              );
+                            } else if (result == 'profile_incomplete' &&
+                                mounted) {
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        const ProfileCompletionScreen()),
+                              );
+                            } else if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(authProvider.error ??
+                                      'Google Sign In gagal'),
+                                  backgroundColor: AppColors.error,
                                 ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      width: 40,
-                                      height: 40,
-                                      decoration: const BoxDecoration(
-                                        image: DecorationImage(
-                                          image: NetworkImage("https://placehold.co/40x40"),
-                                          fit: BoxFit.contain,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Text(
-                                      'Google',
-                                      style: TextStyle(
-                                        color: AppColors.textPrimary,
-                                        fontSize: 20,
-                                        fontFamily: 'Poppins',
-                                        fontWeight: FontWeight.w600,
-                                        height: 1.50,
-                                      ),
-                                    ),
-                                  ],
+                              );
+                            }
+                          },
+                          child: Container(
+                            height: 60,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: AppColors.shadowLight,
+                                  blurRadius: 4,
+                                  offset: Offset(0, 1),
                                 ),
-                              ),
+                              ],
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Container(
-                                height: 60,
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: AppColors.shadowLight,
-                                      blurRadius: 4,
-                                      offset: Offset(0, 1),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: const BoxDecoration(
+                                    image: DecorationImage(
+                                      image: NetworkImage(
+                                          "https://developers.google.com/identity/images/g-logo.png"),
+                                      fit: BoxFit.contain,
                                     ),
-                                  ],
+                                  ),
                                 ),
-                                child: const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.apple,
-                                      size: 24,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Apple ID',
-                                      style: TextStyle(
-                                        color: AppColors.textPrimary,
-                                        fontSize: 20,
-                                        fontFamily: 'Poppins',
-                                        fontWeight: FontWeight.w600,
-                                        height: 1.50,
-                                      ),
-                                    ),
-                                  ],
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Google',
+                                  style: TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 20,
+                                    fontFamily: 'Poppins',
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.50,
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
 
                         const SizedBox(height: 32),
@@ -381,7 +404,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: ElevatedButton(
-                                onPressed: authProvider.isLoading ? null : _handleRegister,
+                                onPressed: authProvider.isLoading
+                                    ? null
+                                    : _handleRegister,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
@@ -395,7 +420,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         width: 20,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.white),
                                         ),
                                       )
                                     : const Text(
@@ -455,13 +482,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
         keyboardType: keyboardType,
         obscureText: obscureText,
         decoration: InputDecoration(
-          hintText: hintText,
-          hintStyle: const TextStyle(
-            color: AppColors.textLight,
+          labelText: hintText,
+          hintText: 'Masukkan ${hintText.toLowerCase()}',
+          labelStyle: const TextStyle(
+            color: AppColors.textSecondary,
             fontSize: 16,
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w400,
             height: 1.50,
+          ),
+          hintStyle: const TextStyle(
+            color: AppColors.textLight,
+            fontSize: 14,
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w400,
+            height: 1.50,
+          ),
+          floatingLabelStyle: const TextStyle(
+            color: AppColors.primary,
+            fontSize: 16,
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w500,
           ),
           border: InputBorder.none,
           contentPadding: EdgeInsets.zero,
@@ -472,4 +513,3 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 }
-

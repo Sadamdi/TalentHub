@@ -40,6 +40,15 @@ const userSchema = new mongoose.Schema({
   profilePicture: {
     type: String
   },
+  googleId: {
+    type: String,
+    sparse: true,
+    unique: true
+  },
+  isGoogleAccount: {
+    type: Boolean,
+    default: false
+  },
   isActive: {
     type: Boolean,
     default: true

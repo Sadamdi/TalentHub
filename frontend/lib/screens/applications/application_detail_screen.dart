@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/application_provider.dart';
 import '../../utils/app_colors.dart';
+import '../../widgets/application_status_badge.dart';
 
 class ApplicationDetailScreen extends StatefulWidget {
   final String applicationId;
@@ -188,27 +189,9 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: _getStatusColor(application.status)
-                                  .withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              _getStatusText(application.status),
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: _getStatusColor(application.status),
-                                fontFamily: 'Poppins',
-                              ),
-                            ),
-                          ),
-                        ],
+                      ApplicationStatusBadge(
+                        status: application.status,
+                        showIcon: true,
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -217,6 +200,51 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                           fontSize: 12,
                           color: AppColors.textLight,
                           fontFamily: 'Poppins',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Job description card
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: AppColors.shadowLight,
+                        blurRadius: 10,
+                        offset: Offset(1, 0),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Deskripsi Pekerjaan',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        application.jobDescription ??
+                            application.job?.description ??
+                            'Deskripsi pekerjaan tidak tersedia',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textPrimary,
+                          fontFamily: 'Poppins',
+                          height: 1.5,
                         ),
                       ),
                     ],
@@ -265,6 +293,31 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                     ],
                   ),
                 ),
+
+                const SizedBox(height: 16),
+
+                // Action buttons
+                if (application.status.toLowerCase() == 'pending') ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            _showCancelDialog(
+                                context, applicationProvider, application.id);
+                          },
+                          icon: const Icon(Icons.cancel),
+                          label: const Text('Batalkan Lamaran'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.error,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           );
@@ -273,34 +326,54 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     );
   }
 
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return AppColors.warning;
-      case 'accepted':
-        return AppColors.success;
-      case 'rejected':
-        return AppColors.error;
-      case 'interview':
-        return AppColors.info;
-      default:
-        return AppColors.textLight;
-    }
-  }
-
-  String _getStatusText(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return 'Menunggu Review';
-      case 'accepted':
-        return 'Diterima';
-      case 'rejected':
-        return 'Ditolak';
-      case 'interview':
-        return 'Jadwal Interview';
-      default:
-        return status;
-    }
+  void _showCancelDialog(BuildContext context, ApplicationProvider provider,
+      String applicationId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Batalkan Lamaran'),
+          content:
+              const Text('Apakah Anda yakin ingin membatalkan lamaran ini?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                final success = await provider.cancelApplication(applicationId);
+                if (success && mounted) {
+                  Navigator.of(context).pop(); // Kembali ke halaman sebelumnya
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Lamaran berhasil dibatalkan'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                } else if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content:
+                          Text(provider.error ?? 'Gagal membatalkan lamaran'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Ya, Batalkan'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   String _formatDate(DateTime date) {

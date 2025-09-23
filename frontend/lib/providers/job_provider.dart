@@ -67,12 +67,15 @@ class JobProvider extends ChangeNotifier {
   }
 
   void _handleError(dynamic error) {
+    print('JobProvider Error: $error'); // Debug log
     if (error.toString().contains('SocketException')) {
       _setError('Tidak ada koneksi internet');
     } else if (error.toString().contains('TimeoutException')) {
       _setError('Koneksi timeout');
+    } else if (error.toString().contains('FormatException')) {
+      _setError('Format data tidak valid');
     } else {
-      _setError('Terjadi kesalahan pada server');
+      _setError('Terjadi kesalahan pada server: ${error.toString()}');
     }
   }
 

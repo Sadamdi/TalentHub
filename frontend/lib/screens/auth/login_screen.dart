@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../providers/auth_provider.dart';
 import '../../utils/app_colors.dart';
 import '../main_navigation.dart';
+import 'profile_completion_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -96,36 +98,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   Container(
                     height: double.infinity,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 125,
-                          height: 37,
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(100),
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                   Expanded(
                     child: Container(
                       height: double.infinity,
                       padding: const EdgeInsets.only(right: 11),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 27.40,
-                            height: 13,
-                            child: Stack(),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ],
@@ -213,24 +190,32 @@ class _LoginScreenState extends State<LoginScreen> {
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
                             decoration: const InputDecoration(
-                              hintText: 'Email',
+                              labelText: 'Email',
+                              hintText: 'Masukkan email Anda',
                               border: InputBorder.none,
                               contentPadding: EdgeInsets.zero,
+                              labelStyle: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontFamily: 'Poppins',
+                              ),
+                              floatingLabelStyle: TextStyle(
+                                color: AppColors.primary,
+                                fontFamily: 'Poppins',
+                              ),
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Email diperlukan';
                               }
-                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                  .hasMatch(value)) {
                                 return 'Format email tidak valid';
                               }
                               return null;
                             },
                           ),
                         ),
-
                         const SizedBox(height: 16),
-
                         Container(
                           height: 42,
                           padding: const EdgeInsets.all(12),
@@ -254,12 +239,23 @@ class _LoginScreenState extends State<LoginScreen> {
                             controller: _passwordController,
                             obscureText: _obscurePassword,
                             decoration: InputDecoration(
-                              hintText: 'Password',
+                              labelText: 'Password',
+                              hintText: 'Masukkan password Anda',
                               border: InputBorder.none,
                               contentPadding: EdgeInsets.zero,
+                              labelStyle: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontFamily: 'Poppins',
+                              ),
+                              floatingLabelStyle: TextStyle(
+                                color: AppColors.primary,
+                                fontFamily: 'Poppins',
+                              ),
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                                  _obscurePassword
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
                                 ),
                                 onPressed: () {
                                   setState(() {
@@ -276,9 +272,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                           ),
                         ),
-
                         const SizedBox(height: 24),
-
                         Consumer<AuthProvider>(
                           builder: (context, authProvider, child) {
                             return Container(
@@ -289,7 +283,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: ElevatedButton(
-                                onPressed: authProvider.isLoading ? null : _handleLogin,
+                                onPressed: authProvider.isLoading
+                                    ? null
+                                    : _handleLogin,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
@@ -303,7 +299,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                         width: 20,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.white),
                                         ),
                                       )
                                     : const Text(
@@ -320,6 +318,94 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                         ),
                       ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Social sign in
+                  const Text(
+                    'Or sign in with',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 16,
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w400,
+                      height: 1.50,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  GestureDetector(
+                    onTap: () async {
+                      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                      final result = await authProvider.signInWithGoogle();
+
+                      if (result == 'success' && mounted) {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                              builder: (context) => const MainNavigation()),
+                        );
+                      } else if (result == 'profile_incomplete' && mounted) {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  const ProfileCompletionScreen()),
+                        );
+                      } else if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                authProvider.error ?? 'Google Sign In gagal'),
+                            backgroundColor: AppColors.error,
+                          ),
+                        );
+                      }
+                    },
+                    child: Container(
+                      height: 60,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: AppColors.shadowLight,
+                            blurRadius: 4,
+                            offset: Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: const BoxDecoration(
+                              image: DecorationImage(
+                                image: NetworkImage(
+                                    "https://developers.google.com/identity/images/g-logo.png"),
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Google',
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 20,
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w600,
+                              height: 1.50,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
@@ -364,4 +450,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-

@@ -28,7 +28,13 @@ class Salary {
   }
 
   String get formattedSalary {
-    return '\$$amount/$period';
+    if (currency == 'IDR') {
+      // Format untuk Rupiah
+      final formattedAmount = (amount / 1000000).toStringAsFixed(0);
+      return 'Rp $formattedAmount juta/$period';
+    } else {
+      return '\$$amount/$period';
+    }
   }
 }
 
@@ -115,9 +121,23 @@ class Job {
   }
 
   factory Job.fromJson(Map<String, dynamic> json) {
+    // Handle companyId yang bisa berupa string atau object
+    String companyId;
+    Company? company;
+
+    if (json['companyId'] is Map) {
+      // Jika companyId adalah object, ambil _id dan parse company
+      companyId = json['companyId']['_id'];
+      company = Company.fromJson(json['companyId']);
+    } else {
+      // Jika companyId adalah string
+      companyId = json['companyId'].toString();
+      company = null;
+    }
+
     return Job(
       id: json['_id'],
-      companyId: json['companyId'],
+      companyId: companyId,
       title: json['title'],
       description: json['description'],
       requirements: List<String>.from(json['requirements'] ?? []),
@@ -137,8 +157,7 @@ class Job {
       views: json['views'] ?? 0,
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
-      company:
-          json['companyId'] is Map ? Company.fromJson(json['companyId']) : null,
+      company: company,
     );
   }
 

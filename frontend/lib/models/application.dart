@@ -12,6 +12,13 @@ class Application {
   final Job? job;
   final User? user;
 
+  // Additional fields for display
+  final String? jobTitle;
+  final String? companyName;
+  final String? applicantName;
+  final String? applicantEmail;
+  final String? jobDescription;
+
   Application({
     required this.id,
     required this.jobId,
@@ -22,6 +29,11 @@ class Application {
     required this.updatedAt,
     this.job,
     this.user,
+    this.jobTitle,
+    this.companyName,
+    this.applicantName,
+    this.applicantEmail,
+    this.jobDescription,
   });
 
   factory Application.fromJson(Map<String, dynamic> json) {
@@ -33,8 +45,16 @@ class Application {
       status: json['status'] ?? 'pending',
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
-      job: json['jobId'] is Map ? Job.fromJson(json['jobId']) : null,
-      user: json['userId'] is Map ? User.fromJson(json['userId']) : null,
+      job: json['job'] is Map ? Job.fromJson(json['job']) : null,
+      user: json['user'] is Map ? User.fromJson(json['user']) : null,
+      jobTitle: json['jobTitle'] ?? json['job']?['title'],
+      companyName: json['companyName'] ?? json['job']?['company'],
+      applicantName: json['applicantName'] ??
+          (json['user']?['firstName'] ?? '') +
+              ' ' +
+              (json['user']?['lastName'] ?? ''),
+      applicantEmail: json['applicantEmail'] ?? json['user']?['email'],
+      jobDescription: json['jobDescription'] ?? json['job']?['description'],
     );
   }
 

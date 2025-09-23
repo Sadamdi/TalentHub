@@ -203,6 +203,82 @@ router.post(
 	}
 );
 
+// @route   POST /api/auth/google
+// @desc    Google Sign In
+// @access  Public
+router.post('/google', async (req, res) => {
+	try {
+		const { email, firstName, lastName, googleId, accessToken, idToken } = req.body;
+
+		// Cari user berdasarkan email atau googleId
+		let user = await User.findOne({
+			$or: [
+				{ email },
+				{ googleId }
+			]
+		});
+
+		let isNewUser = false;
+
+		if (!user) {
+			// Buat user baru jika belum ada
+			isNewUser = true;
+			user = new User({
+				firstName,
+				lastName,
+				email,
+				password: googleId, // Password default untuk Google Sign In
+				role: 'talent', // Default role untuk Google Sign In
+				googleId,
+				isGoogleAccount: true,
+			});
+			await user.save();
+
+			// Buat profil talent
+			const talent = new Talent({
+				userId: user._id,
+				name: `${firstName} ${lastName}`,
+				description: 'Deskripsi belum diisi',
+			});
+			await talent.save();
+		} else {
+			// Update googleId jika belum ada
+			if (!user.googleId) {
+				user.googleId = googleId;
+				user.isGoogleAccount = true;
+				await user.save();
+			}
+		}
+
+		// Generate token
+		const token = generateToken(user._id);
+
+		res.status(isNewUser ? 201 : 200).json({
+			success: true,
+			message: isNewUser ? 'Registrasi Google berhasil' : 'Login Google berhasil',
+			data: {
+				token,
+				user: {
+					id: user._id,
+					firstName: user.firstName,
+					lastName: user.lastName,
+					email: user.email,
+					role: user.role,
+					location: user.location,
+					phoneNumber: user.phoneNumber,
+					profilePicture: user.profilePicture,
+				},
+			},
+		});
+	} catch (error) {
+		console.error('Google Sign In error:', error);
+		res.status(500).json({
+			success: false,
+			message: 'Terjadi kesalahan pada server',
+		});
+	}
+});
+
 // @route   GET /api/auth/me
 // @desc    Get current user info
 // @access  Private
