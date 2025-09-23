@@ -307,53 +307,87 @@ router.delete('/:id', [auth, requireRole(['company'])], async (req, res) => {
 // @route   GET /api/jobs/company/my-jobs
 // @desc    Get company's jobs
 // @access  Private (Company only)
-router.get(
-	'/company/my-jobs',
-	[auth, requireRole(['company'])],
-	async (req, res) => {
-		try {
-			const company = await Company.findOne({ userId: req.user._id });
-			if (!company) {
-				return res.status(404).json({
-					success: false,
-					message: 'Profil perusahaan tidak ditemukan',
-				});
-			}
-
-			const page = parseInt(req.query.page) || 1;
-			const limit = parseInt(req.query.limit) || 10;
-			const skip = (page - 1) * limit;
-
-			const jobs = await Job.find({ companyId: company._id })
-				.populate('companyId', 'companyName logo')
-				.sort({ createdAt: -1 })
-				.skip(skip)
-				.limit(limit);
-
-			const total = await Job.countDocuments({ companyId: company._id });
-
-			res.json({
-				success: true,
-				data: {
-					jobs,
-					pagination: {
-						currentPage: page,
-						totalPages: Math.ceil(total / limit),
-						totalJobs: total,
-						hasNext: page < Math.ceil(total / limit),
-						hasPrev: page > 1,
-					},
-				},
-			});
-		} catch (error) {
-			console.error('Get company jobs error:', error);
-			res.status(500).json({
+router.get('/company/my-jobs', async (req, res) => {
+	try {
+		// Get token from header
+		const token = req.header('Authorization')?.replace('Bearer ', '');
+		if (!token) {
+			return res.status(401).json({
 				success: false,
-				message: 'Terjadi kesalahan pada server',
+				message: 'Token akses diperlukan'
 			});
 		}
+
+		// Verify token manually
+		const jwt = require('jsonwebtoken');
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		const User = require('../models/User');
+		const user = await User.findById(decoded.userId).select('-password');
+
+		if (!user || !user.isActive || user.role !== 'company') {
+			return res.status(401).json({
+				success: false,
+				message: 'Token tidak valid atau role tidak sesuai'
+			});
+		}
+
+		console.log('User:', user);
+		console.log('User ID:', user._id);
+
+		const company = await Company.findOne({ userId: user._id });
+		console.log('Company found:', company);
+
+		if (!company) {
+			return res.status(404).json({
+				success: false,
+				message: 'Profil perusahaan tidak ditemukan',
+			});
+		}
+
+		const page = parseInt(req.query.page) || 1;
+		const limit = parseInt(req.query.limit) || 10;
+		const skip = (page - 1) * limit;
+
+		const jobs = await Job.find({ companyId: company._id })
+			.populate('companyId', 'companyName logo')
+			.sort({ createdAt: -1 })
+			.skip(skip)
+			.limit(limit);
+
+		const total = await Job.countDocuments({ companyId: company._id });
+
+		res.json({
+			success: true,
+			data: {
+				jobs,
+				pagination: {
+					currentPage: page,
+					totalPages: Math.ceil(total / limit),
+					totalJobs: total,
+					hasNext: page < Math.ceil(total / limit),
+					hasPrev: page > 1,
+				},
+			},
+		});
+	} catch (error) {
+		console.error('Get company jobs error:', error);
+		res.status(500).json({
+			success: false,
+			message: 'Terjadi kesalahan pada server',
+		});
 	}
-);
+});
+
+// @route   GET /api/jobs/test
+// @desc    Test endpoint
+// @access  Public
+router.get('/test', async (req, res) => {
+	res.json({
+		success: true,
+		message: 'Jobs endpoint is working',
+		timestamp: new Date().toISOString()
+	});
+});
 
 // @route   GET /api/jobs/recommendations
 // @desc    Get job recommendations for talent

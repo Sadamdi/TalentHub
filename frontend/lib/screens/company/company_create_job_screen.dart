@@ -40,6 +40,7 @@ class _CompanyCreateJobScreenState extends State<CompanyCreateJobScreen> {
   ];
 
   final List<String> _categories = [
+    'developer',
     'technology',
     'marketing',
     'sales',
