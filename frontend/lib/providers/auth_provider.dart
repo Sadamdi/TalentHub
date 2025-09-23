@@ -184,9 +184,26 @@ class AuthProvider extends ChangeNotifier {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           notifyListeners();
         });
+      } else {
+        _setError(
+            'Gagal mendapatkan data user: ${response.data['message'] ?? 'Unknown error'}');
       }
     } catch (e) {
-      _setError('Gagal mendapatkan data user');
+      print('AuthProvider _getCurrentUser error: $e');
+      if (e.toString().contains('DioException')) {
+        if (e.toString().contains('Connection refused')) {
+          _setError(
+              'Tidak dapat terhubung ke server. Pastikan server berjalan.');
+        } else if (e.toString().contains('Connection timeout')) {
+          _setError('Koneksi timeout. Coba lagi.');
+        } else if (e.toString().contains('bad response')) {
+          _setError('Terjadi kesalahan pada server. Coba lagi nanti.');
+        } else {
+          _setError('Terjadi kesalahan koneksi. Coba lagi.');
+        }
+      } else {
+        _setError('Gagal mendapatkan data user');
+      }
     }
   }
 

@@ -23,44 +23,8 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
   }
 
   void _loadJobs() {
-    // Try test endpoint without authentication first for debugging
-    _apiService.testEndpointWithoutAuth('/jobs/test-endpoint').then((response) {
-      print('Test endpoint response: ${response.data}');
-      print('✅ Test endpoint berhasil!');
-
-      // If test endpoint works, try company jobs
-      _testCompanyJobsEndpoint();
-    }).catchError((error) {
-      print('❌ Test endpoint error: $error');
-      print('🔍 Mungkin ada masalah dengan base URL atau network');
-
-      // Fallback to regular endpoint with auth
-      _loadJobsWithAuth();
-    });
-  }
-
-  void _testCompanyJobsEndpoint() {
-    _apiService.testCompanyJobs().then((response) {
-      print('✅ Company jobs test endpoint response: ${response.data}');
-    }).catchError((error) {
-      print('❌ Company jobs test endpoint error: $error');
-      _loadJobsWithAuth();
-    });
-  }
-
-  void _loadJobsWithAuth() {
     final jobProvider = Provider.of<JobProvider>(context, listen: false);
-    jobProvider.getCompanyJobs().catchError((error) {
-      print('Error loading jobs with auth: $error');
-    });
-  }
-
-  Future<void> _clearTokenAndRelogin() async {
-    await _apiService.removeToken();
-    // Navigate to login screen
-    if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-    }
+    jobProvider.getCompanyJobs();
   }
 
   @override
@@ -80,75 +44,7 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
             onSelected: (value) {
               switch (value) {
                 case 'clear_token':
-                  _clearTokenAndRelogin();
-                  break;
-                case 'test_without_auth':
-                  _apiService
-                      .testEndpointWithoutAuth('/jobs/test-endpoint')
-                      .then((response) {
-                    print('Test endpoint response: ${response.data}');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text(
-                              '✅ Test berhasil: ${response.data['message']}')),
-                    );
-                  }).catchError((error) {
-                    print('Test endpoint error: $error');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('❌ Test error: $error')),
-                    );
-                  });
-                  break;
-                case 'test_alternative_url':
-                  _apiService
-                      .testWithAlternativeUrl(
-                          '/jobs/test-endpoint', 'http://10.0.2.2:2550/api')
-                      .then((response) {
-                    print('Alternative URL test response: ${response.data}');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text(
-                              '✅ Alternative URL berhasil: ${response.data['message']}')),
-                    );
-                  }).catchError((error) {
-                    print('Alternative URL test error: $error');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text('❌ Alternative URL error: $error')),
-                    );
-                  });
-                  break;
-                case 'test_all_urls':
-                  _apiService
-                      .testAllUrls('/jobs/test-endpoint')
-                      .then((results) {
-                    print('All URLs test results: $results');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text(
-                              '✅ Lihat console untuk hasil test semua URL')),
-                    );
-                  }).catchError((error) {
-                    print('All URLs test error: $error');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('❌ All URLs test error: $error')),
-                    );
-                  });
-                  break;
-                case 'ping_server':
-                  _apiService.pingServer().then((results) {
-                    print('Server ping results: $results');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content:
-                              Text('✅ Lihat console untuk hasil ping server')),
-                    );
-                  }).catchError((error) {
-                    print('Server ping error: $error');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('❌ Server ping error: $error')),
-                    );
-                  });
+                  // TODO: Implement clear token functionality
                   break;
               }
             },
@@ -156,22 +52,6 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
               const PopupMenuItem(
                 value: 'clear_token',
                 child: Text('🔄 Clear Token & Relogin'),
-              ),
-              const PopupMenuItem(
-                value: 'test_without_auth',
-                child: Text('🧪 Test Endpoint (No Auth)'),
-              ),
-              const PopupMenuItem(
-                value: 'test_alternative_url',
-                child: Text('📱 Test Alternative URL'),
-              ),
-              const PopupMenuItem(
-                value: 'test_all_urls',
-                child: Text('🌐 Test All URLs'),
-              ),
-              const PopupMenuItem(
-                value: 'ping_server',
-                child: Text('📡 Ping Server'),
               ),
             ],
           ),

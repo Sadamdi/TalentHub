@@ -1,58 +1,78 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiService {
-  // Backend server berjalan di server publik
+  late final Dio _dio;
+  late final FlutterSecureStorage _storage;
+
   static const String baseUrl = 'http://43.157.211.134:2550/api';
 
-  // Alternative URLs untuk debugging
-  static const String localhostUrl =
-      'http://10.0.2.2:2550/api'; // Untuk emulator Android
-  static const String ipv4Url =
-      'http://192.168.1.100:2550/api'; // Contoh IP lokal
-
-  static const FlutterSecureStorage _storage = FlutterSecureStorage();
-
-  late final Dio _dio;
-
   ApiService() {
+    _storage = const FlutterSecureStorage();
+
     _dio = Dio(BaseOptions(
       baseUrl: baseUrl,
-      sendTimeout: const Duration(seconds: 30),
+      connectTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 30),
+      // Let us inspect 4xx responses instead of throwing, we'll handle them downstream
+      validateStatus: (status) => status != null && status < 500,
       headers: {
         'Content-Type': 'application/json',
       },
     ));
 
+    // Add auth interceptor
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         final token = await getToken();
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
-        print(
-            '📡 API Request: ${options.method} ${options.baseUrl}${options.path}');
-        print('📝 Headers: ${options.headers}');
+        // Detailed logging for debugging
+        // ignore: avoid_print
+        print('=== API REQUEST ===');
+        // ignore: avoid_print
+        print('[API] → ${options.method} ${options.uri}');
+        // ignore: avoid_print
+        print('[API] Headers: ${options.headers}');
+        // ignore: avoid_print
+        print('[API] Data: ${options.data}');
+        // ignore: avoid_print
+        print('[API] Query: ${options.queryParameters}');
+        // ignore: avoid_print
+        print('===================');
         handler.next(options);
       },
-      onResponse: (response, handler) {
-        print(
-            '✅ API Response: ${response.statusCode} ${response.requestOptions.path}');
-        handler.next(response);
-      },
       onError: (error, handler) {
+        // Detailed error logging
+        // ignore: avoid_print
+        print('=== API ERROR ===');
+        // ignore: avoid_print
         print(
-            '❌ API Error: ${error.response?.statusCode} ${error.requestOptions.path}');
-        print('❌ Error Message: ${error.message}');
-        print('❌ Error Response: ${error.response?.data}');
-
-        if (error.response?.statusCode == 401) {
-          // Token expired or invalid
-          removeToken();
-        }
+            '[API] ⨯ ${error.requestOptions.method} ${error.requestOptions.uri}');
+        // ignore: avoid_print
+        print('[API] Status: ${error.response?.statusCode}');
+        // ignore: avoid_print
+        print('[API] Response: ${error.response?.data}');
+        // ignore: avoid_print
+        print('[API] Message: ${error.message}');
+        // ignore: avoid_print
+        print('=================');
         handler.next(error);
       },
+    ));
+
+    // Add a general logger for requests/responses (trim bodies to keep logs readable)
+    _dio.interceptors.add(LogInterceptor(
+      request: false,
+      requestHeader: false,
+      requestBody: true,
+      responseHeader: false,
+      responseBody: false,
+      error: true,
     ));
   }
 
@@ -69,132 +89,6 @@ class ApiService {
     await _storage.delete(key: 'auth_token');
   }
 
-  // Method untuk test endpoint tanpa authentication (debugging)
-  Future<Response> testEndpointWithoutAuth(String endpoint) async {
-    print('🔍 Testing endpoint without auth: $baseUrl$endpoint');
-
-    final dio = Dio(BaseOptions(
-      baseUrl: baseUrl,
-      sendTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    ));
-
-    // Add logging interceptor for debugging
-    dio.interceptors.add(LogInterceptor(
-      request: true,
-      requestHeader: true,
-      requestBody: true,
-      responseHeader: true,
-      responseBody: true,
-      error: true,
-    ));
-
-    return await dio.get(endpoint);
-  }
-
-  // Method untuk test dengan base URL alternatif (untuk emulator)
-  Future<Response> testWithAlternativeUrl(
-      String endpoint, String altBaseUrl) async {
-    print('🔍 Testing with alternative URL: $altBaseUrl$endpoint');
-
-    final dio = Dio(BaseOptions(
-      baseUrl: altBaseUrl,
-      sendTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    ));
-
-    dio.interceptors.add(LogInterceptor(
-      request: true,
-      requestHeader: true,
-      requestBody: true,
-      responseHeader: true,
-      responseBody: true,
-      error: true,
-    ));
-
-    return await dio.get(endpoint);
-  }
-
-  // Method untuk test semua base URL yang tersedia
-  Future<Map<String, dynamic>> testAllUrls(String endpoint) async {
-    print('🔍 Testing all available URLs for endpoint: $endpoint');
-
-    final urls = {
-      'public_ip': baseUrl,
-      'localhost': localhostUrl,
-      'ipv4': ipv4Url,
-    };
-
-    final results = <String, dynamic>{};
-
-    for (var entry in urls.entries) {
-      try {
-        print('🧪 Testing ${entry.key}: ${entry.value}$endpoint');
-        final response = await testWithAlternativeUrl(endpoint, entry.value);
-        results[entry.key] = {
-          'success': true,
-          'statusCode': response.statusCode,
-          'data': response.data,
-        };
-        print('✅ ${entry.key} berhasil: ${response.statusCode}');
-      } catch (e) {
-        results[entry.key] = {
-          'success': false,
-          'error': e.toString(),
-        };
-        print('❌ ${entry.key} error: $e');
-      }
-    }
-
-    return results;
-  }
-
-  // Method untuk ping server dan cek connectivity
-  Future<Map<String, dynamic>> pingServer() async {
-    print('🔍 Pinging server...');
-
-    final urls = {
-      'public_ip': 'http://43.157.211.134:2550',
-      'localhost': 'http://10.0.2.2:2550',
-      'ipv4': 'http://192.168.1.100:2550',
-    };
-
-    final results = <String, dynamic>{};
-
-    for (var entry in urls.entries) {
-      try {
-        print('🧪 Pinging ${entry.key}: ${entry.value}');
-        final response = await Dio().get('${entry.value}/api/jobs/ping',
-            options: Options(
-              sendTimeout: const Duration(seconds: 10),
-              receiveTimeout: const Duration(seconds: 10),
-            ));
-        results[entry.key] = {
-          'success': true,
-          'statusCode': response.statusCode,
-          'responseTime': DateTime.now().toString(),
-          'serverInfo': response.data['serverInfo'],
-        };
-        print('✅ ${entry.key} reachable: ${response.statusCode}');
-      } catch (e) {
-        results[entry.key] = {
-          'success': false,
-          'error': e.toString(),
-          'errorTime': DateTime.now().toString(),
-        };
-        print('❌ ${entry.key} unreachable: $e');
-      }
-    }
-
-    return results;
-  }
-
   // Auth endpoints
   Future<Response> login(Map<String, dynamic> data) async {
     return await _dio.post('/auth/login', data: data);
@@ -204,16 +98,16 @@ class ApiService {
     return await _dio.post('/auth/register', data: data);
   }
 
-  Future<Response> googleSignIn(Map<String, dynamic> data) async {
-    return await _dio.post('/auth/google', data: data);
-  }
-
   Future<Response> getCurrentUser() async {
     return await _dio.get('/auth/me');
   }
 
   Future<Response> updateProfile(Map<String, dynamic> data) async {
     return await _dio.put('/auth/profile', data: data);
+  }
+
+  Future<Response> googleSignIn(Map<String, dynamic> data) async {
+    return await _dio.post('/auth/google', data: data);
   }
 
   // Job endpoints
@@ -253,11 +147,8 @@ class ApiService {
     return await _dio.get('/jobs/company-jobs');
   }
 
-  Future<Response> testCompanyJobs() async {
-    return await _dio.get('/jobs/test-company-jobs');
-  }
-
   Future<Response> createJob(Map<String, dynamic> data) async {
+    await ensureCompanyProfile();
     return await _dio.post('/jobs', data: data);
   }
 
@@ -274,9 +165,12 @@ class ApiService {
     int limit = 10,
   }) async {
     final queryParams = <String, dynamic>{
-      'category': category,
       'limit': limit,
     };
+
+    if (category != 'all') {
+      queryParams['category'] = category;
+    }
 
     return await _dio.get('/jobs/recommendations',
         queryParameters: queryParams);
@@ -284,7 +178,7 @@ class ApiService {
 
   // Application endpoints
   Future<Response> getApplications() async {
-    return await _dio.get('/applications');
+    return await _dio.get('/applications/me');
   }
 
   Future<Response> getCompanyApplications() async {
@@ -295,8 +189,75 @@ class ApiService {
     return await _dio.get('/applications/$applicationId');
   }
 
+  // Apply for job - try common endpoint patterns
   Future<Response> applyForJob(Map<String, dynamic> data) async {
-    return await _dio.post('/applications', data: data);
+    // Try /applications first (original)
+    try {
+      return await _dio.post('/applications', data: data);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        // Try alternative endpoints if 404
+        final jobId = data['jobId'];
+        if (jobId != null) {
+          // Try /jobs/{jobId}/apply (correct backend endpoint)
+          try {
+            return await _dio.post('/jobs/$jobId/apply', data: data);
+          } on DioException catch (_) {
+            // Try /jobs/{jobId}/applications as fallback
+            try {
+              return await _dio.post('/jobs/$jobId/applications', data: data);
+            } on DioException catch (_) {
+              // Try /applications/apply/{jobId} as last resort
+              return await _dio.post('/applications/apply/$jobId', data: data);
+            }
+          }
+        }
+      }
+      rethrow;
+    }
+  }
+
+  // Apply with CV upload (multipart) - try common endpoint patterns
+  Future<Response> applyForJobWithFile({
+    required Map<String, dynamic> data,
+    File? cvFile,
+  }) async {
+    final formMap = <String, dynamic>{...data};
+    if (cvFile != null) {
+      final fileName = cvFile.path.split(Platform.pathSeparator).last;
+      formMap['cv'] = await MultipartFile.fromFile(
+        cvFile.path,
+        filename: fileName,
+      );
+    }
+    final formData = FormData.fromMap(formMap);
+
+    // Try /applications first (original)
+    try {
+      return await _dio.post('/applications', data: formData);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        // Try alternative endpoints if 404
+        final jobId = data['jobId'];
+        if (jobId != null) {
+          // Try /jobs/{jobId}/apply (correct backend endpoint)
+          try {
+            return await _dio.post('/jobs/$jobId/apply', data: formData);
+          } on DioException catch (_) {
+            // Try /jobs/{jobId}/applications as fallback
+            try {
+              return await _dio.post('/jobs/$jobId/applications',
+                  data: formData);
+            } on DioException catch (_) {
+              // Try /applications/apply/{jobId} as last resort
+              return await _dio.post('/applications/apply/$jobId',
+                  data: formData);
+            }
+          }
+        }
+      }
+      rethrow;
+    }
   }
 
   Future<Response> updateApplicationStatus(
@@ -313,6 +274,36 @@ class ApiService {
     return await _dio.put('/company/profile', data: data);
   }
 
+  Future<Response> createCompanyProfile(Map<String, dynamic> data) async {
+    return await _dio.post('/company/profile', data: data);
+  }
+
+  // Ensure company profile exists for current user. If missing, create minimal placeholder.
+  Future<void> ensureCompanyProfile() async {
+    try {
+      await getCompanyProfile();
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        final minimalProfile = <String, dynamic>{
+          'companyName': 'Demo Company',
+          'industry': 'Demo',
+          'description': 'Demo company for testing',
+          'website': 'https://demo.com',
+          'location': 'Jakarta',
+          'size': '1-10',
+        };
+        try {
+          await createCompanyProfile(minimalProfile);
+        } on DioException catch (e2) {
+          // If POST fails, try PUT as fallback
+          await updateCompanyProfile(minimalProfile);
+        }
+      } else {
+        rethrow;
+      }
+    }
+  }
+
   // Talent endpoints
   Future<Response> getTalentProfile() async {
     return await _dio.get('/talent/profile');
@@ -320,5 +311,77 @@ class ApiService {
 
   Future<Response> updateTalentProfile(Map<String, dynamic> data) async {
     return await _dio.put('/talent/profile', data: data);
+  }
+
+  // Admin endpoints - for managing all jobs and applications (requires admin role)
+  Future<Response> getAllJobs({
+    int page = 1,
+    String? search,
+    String? category,
+    String? location,
+    String? sort,
+  }) async {
+    final queryParams = <String, dynamic>{
+      'page': page,
+      'limit': 50, // Higher limit for admin view
+    };
+
+    if (search != null && search.isNotEmpty) {
+      queryParams['search'] = search;
+    }
+    if (category != null && category.isNotEmpty && category != 'all') {
+      queryParams['category'] = category;
+    }
+    if (location != null && location.isNotEmpty) {
+      queryParams['location'] = location;
+    }
+    if (sort != null && sort.isNotEmpty) {
+      queryParams['sort'] = sort;
+    }
+
+    return await _dio.get('/admin/jobs', queryParameters: queryParams);
+  }
+
+  Future<Response> adminUpdateJob(
+      String jobId, Map<String, dynamic> data) async {
+    return await _dio.put('/admin/jobs/$jobId', data: data);
+  }
+
+  Future<Response> adminDeleteJob(String jobId) async {
+    return await _dio.delete('/admin/jobs/$jobId');
+  }
+
+  Future<Response> adminActivateJob(String jobId) async {
+    return await _dio.patch('/admin/jobs/$jobId/activate');
+  }
+
+  Future<Response> adminDeactivateJob(String jobId) async {
+    return await _dio.patch('/admin/jobs/$jobId/deactivate');
+  }
+
+  Future<Response> getAllApplications({
+    int page = 1,
+    String? status,
+    String? jobId,
+  }) async {
+    final queryParams = <String, dynamic>{
+      'page': page,
+      'limit': 50,
+    };
+
+    if (status != null && status.isNotEmpty) {
+      queryParams['status'] = status;
+    }
+    if (jobId != null && jobId.isNotEmpty) {
+      queryParams['jobId'] = jobId;
+    }
+
+    return await _dio.get('/admin/applications', queryParameters: queryParams);
+  }
+
+  Future<Response> adminUpdateApplicationStatus(
+      String applicationId, Map<String, dynamic> data) async {
+    return await _dio.put('/admin/applications/$applicationId/status',
+        data: data);
   }
 }

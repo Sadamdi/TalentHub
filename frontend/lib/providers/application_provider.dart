@@ -39,12 +39,30 @@ class ApplicationProvider extends ChangeNotifier {
   }
 
   void _handleError(dynamic error) {
-    if (error.toString().contains('SocketException')) {
+    print('ApplicationProvider Error: $error'); // Debug log
+
+    // Handle DioException
+    if (error.toString().contains('DioException')) {
+      if (error.toString().contains('Connection refused')) {
+        _setError('Tidak dapat terhubung ke server. Pastikan server berjalan.');
+      } else if (error.toString().contains('Connection timeout')) {
+        _setError('Koneksi timeout. Coba lagi.');
+      } else if (error.toString().contains('bad response')) {
+        _setError('Terjadi kesalahan pada server. Coba lagi nanti.');
+      } else {
+        _setError('Terjadi kesalahan koneksi. Coba lagi.');
+      }
+    } else if (error.toString().contains('SocketException')) {
       _setError('Tidak ada koneksi internet');
     } else if (error.toString().contains('TimeoutException')) {
       _setError('Koneksi timeout');
     } else {
-      _setError('Terjadi kesalahan pada server');
+      // Show only the main error message without full stack trace
+      String errorMessage = error.toString();
+      if (errorMessage.contains(':')) {
+        errorMessage = errorMessage.split(':').first;
+      }
+      _setError('Terjadi kesalahan: $errorMessage');
     }
   }
 

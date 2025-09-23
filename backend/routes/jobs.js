@@ -1,6 +1,10 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const { auth, requireRole } = require('../middleware/auth');
+const {
+	auth,
+	requireRole,
+	requireCompanyOrAdmin,
+} = require('../middleware/auth');
 const Job = require('../models/Job');
 const Company = require('../models/Company');
 const Application = require('../models/Application');
@@ -116,13 +120,13 @@ router.get('/:id', async (req, res) => {
 });
 
 // @route   POST /api/jobs
-// @desc    Create new job (Company only)
-// @access  Private (Company only)
+// @desc    Create new job (Company or Admin)
+// @access  Private (Company or Admin)
 router.post(
 	'/',
 	[
 		auth,
-		requireRole(['company']),
+		requireCompanyOrAdmin,
 		body('title').notEmpty().withMessage('Judul pekerjaan diperlukan'),
 		body('description')
 			.notEmpty()
@@ -162,13 +166,33 @@ router.post(
 				});
 			}
 
-			// Get company info
-			const company = await Company.findOne({ userId: req.user._id });
-			if (!company) {
-				return res.status(404).json({
-					success: false,
-					message: 'Profil perusahaan tidak ditemukan',
-				});
+			let company;
+			if (req.user.role === 'admin') {
+				// For admin, try to find existing company profile or create minimal one
+				company = await Company.findOne({ userId: req.user._id });
+				if (!company) {
+					// Create minimal company profile for admin
+					const companyData = {
+						userId: req.user._id,
+						companyName: req.body.companyName || 'Admin Company',
+						industry: req.body.industry || 'Technology',
+						description: 'Company created by admin',
+						website: 'https://admin.company',
+						location: req.body.location || 'Jakarta',
+						phone: '+6281234567890',
+					};
+					company = new Company(companyData);
+					await company.save();
+				}
+			} else {
+				// For regular company, find existing profile
+				company = await Company.findOne({ userId: req.user._id });
+				if (!company) {
+					return res.status(404).json({
+						success: false,
+						message: 'Profil perusahaan tidak ditemukan',
+					});
+				}
 			}
 
 			const jobData = {
@@ -198,22 +222,29 @@ router.post(
 );
 
 // @route   PUT /api/jobs/:id
-// @desc    Update job (Company only)
-// @access  Private (Company only)
-router.put('/:id', [auth, requireRole(['company'])], async (req, res) => {
+// @desc    Update job (Company or Admin)
+// @access  Private (Company or Admin)
+router.put('/:id', [auth, requireCompanyOrAdmin], async (req, res) => {
 	try {
-		const company = await Company.findOne({ userId: req.user._id });
-		if (!company) {
-			return res.status(404).json({
-				success: false,
-				message: 'Profil perusahaan tidak ditemukan',
+		let job;
+
+		if (req.user.role === 'admin') {
+			// Admin can update any job
+			job = await Job.findById(req.params.id);
+		} else {
+			// Regular company can only update their own jobs
+			const company = await Company.findOne({ userId: req.user._id });
+			if (!company) {
+				return res.status(404).json({
+					success: false,
+					message: 'Profil perusahaan tidak ditemukan',
+				});
+			}
+			job = await Job.findOne({
+				_id: req.params.id,
+				companyId: company._id,
 			});
 		}
-
-		const job = await Job.findOne({
-			_id: req.params.id,
-			companyId: company._id,
-		});
 
 		if (!job) {
 			return res.status(404).json({
@@ -263,22 +294,29 @@ router.put('/:id', [auth, requireRole(['company'])], async (req, res) => {
 });
 
 // @route   DELETE /api/jobs/:id
-// @desc    Delete job (Company only)
-// @access  Private (Company only)
-router.delete('/:id', [auth, requireRole(['company'])], async (req, res) => {
+// @desc    Delete job (Company or Admin)
+// @access  Private (Company or Admin)
+router.delete('/:id', [auth, requireCompanyOrAdmin], async (req, res) => {
 	try {
-		const company = await Company.findOne({ userId: req.user._id });
-		if (!company) {
-			return res.status(404).json({
-				success: false,
-				message: 'Profil perusahaan tidak ditemukan',
+		let job;
+
+		if (req.user.role === 'admin') {
+			// Admin can delete any job
+			job = await Job.findById(req.params.id);
+		} else {
+			// Regular company can only delete their own jobs
+			const company = await Company.findOne({ userId: req.user._id });
+			if (!company) {
+				return res.status(404).json({
+					success: false,
+					message: 'Profil perusahaan tidak ditemukan',
+				});
+			}
+			job = await Job.findOne({
+				_id: req.params.id,
+				companyId: company._id,
 			});
 		}
-
-		const job = await Job.findOne({
-			_id: req.params.id,
-			companyId: company._id,
-		});
 
 		if (!job) {
 			return res.status(404).json({
@@ -305,61 +343,56 @@ router.delete('/:id', [auth, requireRole(['company'])], async (req, res) => {
 });
 
 // @route   GET /api/jobs/company-jobs
-// @desc    Get company's jobs
-// @access  Private (Company only)
-router.get('/company-jobs', async (req, res) => {
+// @desc    Get company's jobs (Company or Admin)
+// @access  Private (Company or Admin)
+router.get('/company-jobs', [auth, requireCompanyOrAdmin], async (req, res) => {
 	try {
-		// Get token from header
-		const token = req.header('Authorization')?.replace('Bearer ', '');
-		if (!token) {
-			return res.status(401).json({
-				success: false,
-				message: 'Token akses diperlukan',
-			});
-		}
+		let companyId;
 
-		// Verify token manually
-		const jwt = require('jsonwebtoken');
-		let decoded;
-		try {
-			decoded = jwt.verify(token, process.env.JWT_SECRET);
-		} catch (jwtError) {
-			return res.status(401).json({
-				success: false,
-				message: 'Token tidak valid',
-			});
-		}
-
-		const User = require('../models/User');
-		const user = await User.findById(decoded.userId).select('-password');
-
-		if (!user || !user.isActive || user.role !== 'company') {
-			return res.status(401).json({
-				success: false,
-				message: 'Token tidak valid atau role tidak sesuai',
-			});
-		}
-
-		const company = await Company.findOne({ userId: user._id });
-
-		if (!company) {
-			return res.status(404).json({
-				success: false,
-				message: 'Profil perusahaan tidak ditemukan',
-			});
+		if (req.user.role === 'admin') {
+			// Admin can get jobs from any company, but we'll get their own if exists
+			const company = await Company.findOne({ userId: req.user._id });
+			if (company) {
+				companyId = company._id;
+			} else {
+				// If admin has no company, return empty
+				return res.json({
+					success: true,
+					data: {
+						jobs: [],
+						pagination: {
+							currentPage: 1,
+							totalPages: 0,
+							totalJobs: 0,
+							hasNext: false,
+							hasPrev: false,
+						},
+					},
+				});
+			}
+		} else {
+			// Regular company
+			const company = await Company.findOne({ userId: req.user._id });
+			if (!company) {
+				return res.status(404).json({
+					success: false,
+					message: 'Profil perusahaan tidak ditemukan',
+				});
+			}
+			companyId = company._id;
 		}
 
 		const page = parseInt(req.query.page) || 1;
 		const limit = parseInt(req.query.limit) || 10;
 		const skip = (page - 1) * limit;
 
-		const jobs = await Job.find({ companyId: company._id })
+		const jobs = await Job.find({ companyId })
 			.populate('companyId', 'companyName logo')
 			.sort({ createdAt: -1 })
 			.skip(skip)
 			.limit(limit);
 
-		const total = await Job.countDocuments({ companyId: company._id });
+		const total = await Job.countDocuments({ companyId });
 
 		res.json({
 			success: true,
@@ -416,25 +449,32 @@ router.get('/recommendations', async (req, res) => {
 });
 
 // @route   GET /api/jobs/:id/applications
-// @desc    Get applications for a specific job (Company only)
-// @access  Private (Company only)
+// @desc    Get applications for a specific job (Company or Admin)
+// @access  Private (Company or Admin)
 router.get(
 	'/:id/applications',
-	[auth, requireRole(['company'])],
+	[auth, requireCompanyOrAdmin],
 	async (req, res) => {
 		try {
-			const company = await Company.findOne({ userId: req.user._id });
-			if (!company) {
-				return res.status(404).json({
-					success: false,
-					message: 'Profil perusahaan tidak ditemukan',
+			let job;
+
+			if (req.user.role === 'admin') {
+				// Admin can access any job's applications
+				job = await Job.findById(req.params.id);
+			} else {
+				// Regular company can only access their own job's applications
+				const company = await Company.findOne({ userId: req.user._id });
+				if (!company) {
+					return res.status(404).json({
+						success: false,
+						message: 'Profil perusahaan tidak ditemukan',
+					});
+				}
+				job = await Job.findOne({
+					_id: req.params.id,
+					companyId: company._id,
 				});
 			}
-
-			const job = await Job.findOne({
-				_id: req.params.id,
-				companyId: company._id,
-			});
 
 			if (!job) {
 				return res.status(404).json({
