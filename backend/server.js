@@ -118,11 +118,16 @@ mongoose
 		process.exit(1);
 	});
 
+// Initialize scheduler for automatic cleanup
+const Scheduler = require('./scheduler');
+Scheduler.init();
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, '0.0.0.0', () => {
 	console.log(`🚀 Server berjalan di port ${PORT}`);
 	console.log(`📱 Akses dari HP: http://[IP_ADDRESS]:${PORT}`);
+	console.log(`🧹 Application cleanup scheduler is active`);
 });
 
 module.exports = app;

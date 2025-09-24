@@ -51,7 +51,6 @@ class SearchFilterBar extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     controller: searchController,
-                    onChanged: onSearchChanged,
                     onSubmitted: (_) =>
                         onSearchChanged?.call(searchController?.text ?? ''),
                     decoration: InputDecoration(
@@ -112,9 +111,12 @@ class SearchFilterBar extends StatelessWidget {
             ],
           ),
           child: GestureDetector(
-            onTap: onFilterPressed,
+            onTap: () {
+              // Trigger search when filter/search button is pressed
+              onSearchChanged?.call(searchController?.text ?? '');
+            },
             child: const Icon(
-              Icons.filter_list,
+              Icons.search,
               size: 20,
               color: AppColors.textLight,
             ),
