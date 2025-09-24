@@ -86,6 +86,113 @@ router.get('/', async (req, res) => {
 	}
 });
 
+// @route   GET /api/jobs/company-jobs
+// @desc    Get company's jobs (Company) or all jobs (Admin)
+// @access  Private (Company or Admin)
+router.get('/company-jobs', [auth, requireCompanyOrAdmin], async (req, res) => {
+	try {
+		let jobs;
+		let total;
+
+		if (req.user.role === 'admin') {
+			// Admin gets all jobs
+			console.log('Admin accessing all jobs');
+			const page = parseInt(req.query.page) || 1;
+			const limit = parseInt(req.query.limit) || 50;
+			const skip = (page - 1) * limit;
+
+			jobs = await Job.find({})
+				.populate('companyId', 'companyName logo')
+				.sort({ createdAt: -1 })
+				.skip(skip)
+				.limit(limit);
+
+			total = await Job.countDocuments();
+
+			console.log(`Admin found ${jobs.length} jobs out of ${total} total jobs`);
+
+			res.json({
+				success: true,
+				message: 'Admin accessing all jobs',
+				data: {
+					jobs,
+					pagination: {
+						currentPage: page,
+						totalPages: Math.ceil(total / limit),
+						totalJobs: total,
+						hasNext: page < Math.ceil(total / limit),
+						hasPrev: page > 1,
+					},
+				},
+			});
+		} else {
+			// Company gets ALL jobs (same as admin)
+			let company = await Company.findOne({ userId: req.user._id });
+			if (!company) {
+				console.log('❌ Company profile not found for user:', req.user._id);
+				console.log('👤 User info:', {
+					id: req.user._id,
+					email: req.user.email,
+					role: req.user.role,
+					firstName: req.user.firstName,
+					lastName: req.user.lastName,
+				});
+
+				// Auto-create company profile
+				console.log('🏗️ Auto-creating company profile...');
+				company = new Company({
+					userId: req.user._id,
+					companyName: `${req.user.firstName} ${req.user.lastName}`,
+					description: 'Deskripsi perusahaan belum diisi',
+					industry: 'Technology',
+					location: req.user.location || 'Jakarta',
+					phone: req.user.phoneNumber || '+6281234567890',
+				});
+				await company.save();
+				console.log('✅ Company profile auto-created:', company._id);
+			}
+
+			console.log('Company accessing all jobs (same as admin)');
+			const page = parseInt(req.query.page) || 1;
+			const limit = parseInt(req.query.limit) || 50;
+			const skip = (page - 1) * limit;
+
+			jobs = await Job.find({})
+				.populate('companyId', 'companyName logo')
+				.sort({ createdAt: -1 })
+				.skip(skip)
+				.limit(limit);
+
+			total = await Job.countDocuments();
+
+			console.log(
+				`Company found ${jobs.length} jobs out of ${total} total jobs`
+			);
+
+			res.json({
+				success: true,
+				message: 'Company accessing all jobs',
+				data: {
+					jobs,
+					pagination: {
+						currentPage: page,
+						totalPages: Math.ceil(total / limit),
+						totalJobs: total,
+						hasNext: page < Math.ceil(total / limit),
+						hasPrev: page > 1,
+					},
+				},
+			});
+		}
+	} catch (error) {
+		console.error('Get company jobs error:', error);
+		res.status(500).json({
+			success: false,
+			message: 'Terjadi kesalahan pada server',
+		});
+	}
+});
+
 // @route   GET /api/jobs/:id
 // @desc    Get job by ID
 // @access  Public
@@ -356,113 +463,6 @@ router.delete('/:id', [auth, requireCompanyOrAdmin], async (req, res) => {
 		});
 	} catch (error) {
 		console.error('Delete job error:', error);
-		res.status(500).json({
-			success: false,
-			message: 'Terjadi kesalahan pada server',
-		});
-	}
-});
-
-// @route   GET /api/jobs/company-jobs
-// @desc    Get company's jobs (Company) or all jobs (Admin)
-// @access  Private (Company or Admin)
-router.get('/company-jobs', [auth, requireCompanyOrAdmin], async (req, res) => {
-	try {
-		let jobs;
-		let total;
-
-		if (req.user.role === 'admin') {
-			// Admin gets all jobs
-			console.log('Admin accessing all jobs');
-			const page = parseInt(req.query.page) || 1;
-			const limit = parseInt(req.query.limit) || 50;
-			const skip = (page - 1) * limit;
-
-			jobs = await Job.find({})
-				.populate('companyId', 'companyName logo')
-				.sort({ createdAt: -1 })
-				.skip(skip)
-				.limit(limit);
-
-			total = await Job.countDocuments();
-
-			console.log(`Admin found ${jobs.length} jobs out of ${total} total jobs`);
-
-			res.json({
-				success: true,
-				message: 'Admin accessing all jobs',
-				data: {
-					jobs,
-					pagination: {
-						currentPage: page,
-						totalPages: Math.ceil(total / limit),
-						totalJobs: total,
-						hasNext: page < Math.ceil(total / limit),
-						hasPrev: page > 1,
-					},
-				},
-			});
-		} else {
-			// Company gets ALL jobs (same as admin)
-			let company = await Company.findOne({ userId: req.user._id });
-			if (!company) {
-				console.log('❌ Company profile not found for user:', req.user._id);
-				console.log('👤 User info:', {
-					id: req.user._id,
-					email: req.user.email,
-					role: req.user.role,
-					firstName: req.user.firstName,
-					lastName: req.user.lastName,
-				});
-
-				// Auto-create company profile
-				console.log('🏗️ Auto-creating company profile...');
-				company = new Company({
-					userId: req.user._id,
-					companyName: `${req.user.firstName} ${req.user.lastName}`,
-					description: 'Deskripsi perusahaan belum diisi',
-					industry: 'Technology',
-					location: req.user.location || 'Jakarta',
-					phone: req.user.phoneNumber || '+6281234567890',
-				});
-				await company.save();
-				console.log('✅ Company profile auto-created:', company._id);
-			}
-
-			console.log('Company accessing all jobs (same as admin)');
-			const page = parseInt(req.query.page) || 1;
-			const limit = parseInt(req.query.limit) || 50;
-			const skip = (page - 1) * limit;
-
-			jobs = await Job.find({})
-				.populate('companyId', 'companyName logo')
-				.sort({ createdAt: -1 })
-				.skip(skip)
-				.limit(limit);
-
-			total = await Job.countDocuments();
-
-			console.log(
-				`Company found ${jobs.length} jobs out of ${total} total jobs`
-			);
-
-			res.json({
-				success: true,
-				message: 'Company accessing all jobs',
-				data: {
-					jobs,
-					pagination: {
-						currentPage: page,
-						totalPages: Math.ceil(total / limit),
-						totalJobs: total,
-						hasNext: page < Math.ceil(total / limit),
-						hasPrev: page > 1,
-					},
-				},
-			});
-		}
-	} catch (error) {
-		console.error('Get company jobs error:', error);
 		res.status(500).json({
 			success: false,
 			message: 'Terjadi kesalahan pada server',

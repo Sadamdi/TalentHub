@@ -520,7 +520,7 @@ router.get('/me', [auth, requireRole(['talent'])], async (req, res) => {
 // @route   GET /api/applications/company
 // @desc    Get applications for company (Company only)
 // @access  Private (Company only)
-router.get('/company', [auth, requireRole(['company'])], async (req, res) => {
+router.get('/company', [auth, requireCompanyOrAdmin], async (req, res) => {
 	try {
 		let company = await Company.findOne({ userId: req.user._id });
 		if (!company) {
