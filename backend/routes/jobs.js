@@ -453,13 +453,12 @@ router.delete('/:id', [auth, requireCompanyOrAdmin], async (req, res) => {
 			});
 		}
 
-		// Soft delete by setting isActive to false
-		job.isActive = false;
-		await job.save();
+		// Hard delete - permanently remove from database
+		await Job.findByIdAndDelete(req.params.id);
 
 		res.json({
 			success: true,
-			message: 'Lowongan pekerjaan berhasil dihapus',
+			message: 'Lowongan pekerjaan berhasil dihapus secara permanen',
 		});
 	} catch (error) {
 		console.error('Delete job error:', error);

@@ -47,7 +47,7 @@ class _CompanyDashboardState extends State<CompanyDashboard> {
           ),
           body: Consumer<JobProvider>(
             builder: (context, jobProvider, child) {
-              if (jobProvider.isLoading && jobProvider.jobs.isEmpty) {
+              if (jobProvider.isLoading && jobProvider.companyJobs.isEmpty) {
                 return const Center(
                   child: CircularProgressIndicator(),
                 );
@@ -64,7 +64,7 @@ class _CompanyDashboardState extends State<CompanyDashboard> {
                         Expanded(
                           child: _buildStatCard(
                             'Total Jobs',
-                            jobProvider.jobs.length.toString(),
+                            jobProvider.companyJobs.length.toString(),
                             Icons.work,
                             AppColors.primary,
                           ),
@@ -73,7 +73,7 @@ class _CompanyDashboardState extends State<CompanyDashboard> {
                         Expanded(
                           child: _buildStatCard(
                             'Active',
-                            jobProvider.jobs
+                            jobProvider.companyJobs
                                 .where((job) => job.isActive)
                                 .length
                                 .toString(),
@@ -89,7 +89,7 @@ class _CompanyDashboardState extends State<CompanyDashboard> {
                         Expanded(
                           child: _buildStatCard(
                             'Draft',
-                            jobProvider.jobs
+                            jobProvider.companyJobs
                                 .where((job) => !job.isActive)
                                 .length
                                 .toString(),

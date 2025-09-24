@@ -61,7 +61,7 @@ class _JobApplicationsScreenState extends State<JobApplicationsScreen> {
             );
           }
 
-          final applications = applicationProvider.companyApplications;
+          final applications = applicationProvider.jobApplications;
 
           if (applications.isEmpty) {
             return const Center(

@@ -520,6 +520,13 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
                                   job.isActive ? 'Deactivate' : 'Activate',
                                 ),
                               ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Text(
+                                  'Delete Job',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
                             ],
                             onSelected: (value) async {
                               switch (value) {
@@ -535,6 +542,9 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
                                   break;
                                 case 'deactivate':
                                   await _toggleJobStatus(context, job, false);
+                                  break;
+                                case 'delete':
+                                  await _deleteJob(context, job);
                                   break;
                               }
                             },
@@ -561,5 +571,66 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
         child: const Icon(Icons.add),
       ),
     );
+  }
+
+  Future<void> _deleteJob(BuildContext context, Job job) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Job'),
+        content: Text(
+            'Are you sure you want to permanently delete "${job.title}"? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final success = await _apiService.deleteJob(job.id);
+
+        if (success.statusCode == 200) {
+          _loadJobs(); // Refresh the job list
+
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content:
+                    Text('Job "${job.title}" has been permanently deleted'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          }
+        } else {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    'Failed to delete job: ${success.data['message'] ?? 'Unknown error'}'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+        }
+      } catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error deleting job: $error'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    }
   }
 }

@@ -10,6 +10,7 @@ class ApplicationProvider extends ChangeNotifier {
 
   List<Application> _applications = [];
   List<Application> _companyApplications = [];
+  List<Application> _jobApplications = [];
   Application? _selectedApplication;
   Map<String, dynamic>? _chat;
   bool _isLoading = false;
@@ -17,6 +18,7 @@ class ApplicationProvider extends ChangeNotifier {
 
   List<Application> get applications => _applications;
   List<Application> get companyApplications => _companyApplications;
+  List<Application> get jobApplications => _jobApplications;
   Application? get selectedApplication => _selectedApplication;
   Map<String, dynamic>? get chat => _chat;
   bool get isLoading => _isLoading;
@@ -350,7 +352,7 @@ class ApplicationProvider extends ChangeNotifier {
     try {
       final response = await _apiService.getApplicationsByJobId(jobId);
       if (response.statusCode == 200) {
-        _companyApplications = (response.data['data']['applications'] as List)
+        _jobApplications = (response.data['data']['applications'] as List)
             .map((app) => Application.fromJson(app))
             .toList();
       }
@@ -400,8 +402,10 @@ class ApplicationProvider extends ChangeNotifier {
   Future<Map<String, dynamic>> sendChatMessage(
       String applicationId, String message) async {
     try {
-      final response =
-          await _apiService.sendChatMessage(applicationId, message, 'talent');
+      // Get current user's role from AuthProvider
+      // We need to get the role dynamically
+      final response = await _apiService.sendChatMessage(
+          applicationId, message, null); // Let backend determine role
       if (response.statusCode == 201) {
         // Refresh chat after sending message
         await getChatByApplicationId(applicationId);

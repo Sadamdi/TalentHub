@@ -332,10 +332,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               items: const [
                                 DropdownMenuItem(
                                     value: 'talent',
-                                    child: Text('Looking for Job (Talent)')),
+                                    child: Text(
+                                        '🔍 Looking for Job (Talent) - Default')),
                                 DropdownMenuItem(
                                     value: 'company',
-                                    child: Text('Hiring (Company)')),
+                                    child: Text('🏢 Hiring (Company)')),
                               ],
                             ),
                           ),

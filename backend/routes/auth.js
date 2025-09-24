@@ -26,6 +26,7 @@ router.post(
 			.isLength({ min: 6 })
 			.withMessage('Password minimal 6 karakter'),
 		body('role')
+			.optional()
 			.isIn(['talent', 'company'])
 			.withMessage('Role harus talent atau company'),
 		body('location')
@@ -53,7 +54,7 @@ router.post(
 				lastName,
 				email,
 				password,
-				role,
+				role = 'talent', // Default to talent if not provided
 				location,
 				phoneNumber,
 			} = req.body;

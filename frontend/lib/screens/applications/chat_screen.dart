@@ -132,12 +132,19 @@ class _ChatScreenState extends State<ChatScreen> {
                     if (isMyMessage) {
                       senderName = 'You';
                     } else {
-                      if (senderRole == 'talent') {
-                        senderName = 'Talent';
-                      } else if (senderRole == 'company') {
-                        senderName = 'Company';
-                      } else if (senderRole == 'admin') {
-                        senderName = 'Admin';
+                      // Get sender name from message data if available
+                      if (message['senderName'] != null &&
+                          message['senderName'].isNotEmpty) {
+                        senderName = message['senderName'];
+                      } else {
+                        // Fallback to role-based names
+                        if (senderRole == 'talent') {
+                          senderName = 'Talent';
+                        } else if (senderRole == 'company') {
+                          senderName = 'Company';
+                        } else if (senderRole == 'admin') {
+                          senderName = 'Admin';
+                        }
                       }
                     }
 

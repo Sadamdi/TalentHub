@@ -297,14 +297,17 @@ class ApiService {
   }
 
   Future<Response> sendChatMessage(
-      String applicationId, String message, String senderRole) async {
+      String applicationId, String message, String? senderRole) async {
     try {
       print(
           'ApiService: Sending message to application: $applicationId with role: $senderRole');
-      return await _dio.post('/chat/$applicationId/messages', data: {
-        'message': message,
-        'senderRole': senderRole,
-      });
+
+      final data = {'message': message};
+      if (senderRole != null) {
+        data['senderRole'] = senderRole;
+      }
+
+      return await _dio.post('/chat/$applicationId/messages', data: data);
     } catch (e) {
       print('ApiService: Send chat message error: $e');
       rethrow;

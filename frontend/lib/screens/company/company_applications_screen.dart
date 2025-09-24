@@ -268,11 +268,18 @@ class _CompanyApplicationsScreenState extends State<CompanyApplicationsScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: () => _downloadCv(application.id),
+                              onPressed: (application.resumeUrl != null &&
+                                      application.resumeUrl!.isNotEmpty)
+                                  ? () => _downloadCv(application.id)
+                                  : null,
                               icon: const Icon(Icons.download),
                               label: const Text('Download CV'),
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.primary,
+                                foregroundColor:
+                                    (application.resumeUrl != null &&
+                                            application.resumeUrl!.isNotEmpty)
+                                        ? AppColors.primary
+                                        : AppColors.grey,
                               ),
                             ),
                           ),
@@ -344,19 +351,46 @@ class _CompanyApplicationsScreenState extends State<CompanyApplicationsScreen> {
 
   void _downloadCv(String applicationId) async {
     try {
+      // Get the application to access CV filename
       final apiService = ApiService();
+
+      // Check if application has CV first
+      final response = await apiService.getApplication(applicationId);
+      final application = response.data['data'];
+
+      if (application == null ||
+          application['resumeUrl'] == null ||
+          application['resumeUrl'].isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No CV available for download'),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+        return;
+      }
+
+      // Show downloading message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Downloading CV...'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+
+      // Download CV
       await apiService.downloadCv(applicationId);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('CV download started'),
+          content: Text('CV downloaded successfully'),
           backgroundColor: AppColors.success,
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Gagal download CV: $e'),
+          content: Text('Failed to download CV: $e'),
           backgroundColor: AppColors.error,
         ),
       );
