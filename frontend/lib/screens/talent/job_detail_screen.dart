@@ -5,6 +5,7 @@ import '../../providers/application_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/job_provider.dart';
 import '../../utils/app_colors.dart';
+import 'apply_job_screen.dart';
 
 class JobDetailScreen extends StatefulWidget {
   final String jobId;
@@ -60,30 +61,44 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       coverLetter: 'Saya tertarik dengan posisi ini dan ingin melamar.',
     );
 
-    if (result['success'] == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['message'] ?? 'Lamaran berhasil dikirim!'),
-          backgroundColor: AppColors.success,
+    // Navigate to ApplyJobScreen instead of directly applying
+    final jobProvider = Provider.of<JobProvider>(context, listen: false);
+    final job = jobProvider.getJobById(widget.jobId);
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ApplyJobScreen(
+          jobId: widget.jobId,
+          job: job,
         ),
-      );
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['message'] ??
-              applicationProvider.error ??
-              'Gagal mengirim lamaran'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      ),
+    ).then((_) {
+      // Refresh applications when returning from ApplyJobScreen
+      _refreshApplications();
+    });
+  }
+
+  Future<void> _refreshApplications() async {
+    setState(() {
+      _isApplying = true;
+    });
+
+    final applicationProvider =
+        Provider.of<ApplicationProvider>(context, listen: false);
+    await applicationProvider.getApplications();
+
+    // Check if user has applied for this job
+    if (applicationProvider.applications
+        .any((app) => app.jobId == widget.jobId)) {
+      setState(() {
+        _hasApplied = true;
+      });
     }
 
     setState(() {
       _isApplying = false;
-      if (result['success'] == true) {
-        _hasApplied = true;
-      }
     });
+  }
   }
 
   @override

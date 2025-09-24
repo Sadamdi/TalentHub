@@ -355,24 +355,31 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                   Navigator.of(context).pop();
                   // Show success message after navigation completes
                   WidgetsBinding.instance.addPostFrameCallback((_) {
-                    // Use the scaffold key to show snackbar safely
-                    if (mounted) {
+                    try {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Lamaran berhasil dibatalkan'),
                           backgroundColor: AppColors.success,
                         ),
                       );
+                    } catch (e) {
+                      // Ignore widget disposal errors
+                      print('Widget disposal error ignored: $e');
                     }
                   });
-                } else if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content:
-                          Text(provider.error ?? 'Gagal membatalkan lamaran'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
+                } else {
+                  try {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content:
+                            Text(provider.error ?? 'Gagal membatalkan lamaran'),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
+                  } catch (e) {
+                    // Ignore widget disposal errors
+                    print('Widget disposal error ignored: $e');
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(

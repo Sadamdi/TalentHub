@@ -10,6 +10,7 @@ const Job = require('../models/Job');
 const Talent = require('../models/Talent');
 const Company = require('../models/Company');
 const Chat = require('../models/Chat');
+const User = require('../models/User');
 const fs = require('fs');
 const path = require('path');
 
@@ -173,18 +174,53 @@ router.post(
 					applicationId: application._id,
 				});
 				if (!existingChat) {
+					// Find the company user (admin user with role admin)
+					// First check if the companyId is already an admin user
+					let companyUser = await User.findOne({
+						_id: application.companyId,
+						role: { $in: ['admin', 'company'] },
+					});
+
+					// If not found, find the admin user associated with this company
+					if (!companyUser) {
+						const company = await Company.findOne({
+							userId: application.companyId,
+						});
+						if (company) {
+							companyUser = await User.findOne({
+								_id: company.userId,
+								role: 'admin',
+							});
+						}
+					}
+
 					const chat = new Chat({
 						applicationId: application._id,
 						talentId: application.talentId,
-						companyId: application.companyId,
-						messages: [],
-						lastMessage: '',
+						companyId: companyUser ? companyUser._id : application.companyId,
+						messages: [
+							{
+								senderId: application.talentId,
+								senderRole: 'talent',
+								message:
+									'Halo! Saya telah mengirimkan lamaran untuk posisi ini. Terima kasih atas kesempatan yang diberikan.',
+								timestamp: new Date(),
+								isRead: false,
+							},
+						],
+						lastMessage:
+							'Halo! Saya telah mengirimkan lamaran untuk posisi ini. Terima kasih atas kesempatan yang diberikan.',
 						lastMessageTime: new Date(),
 						talentUnreadCount: 0,
-						companyUnreadCount: 0,
+						companyUnreadCount: 1,
 					});
 					await chat.save();
-					console.log('✅ Chat room created for application:', application._id);
+					console.log(
+						'✅ Chat room created for application:',
+						application._id,
+						'with company user:',
+						companyUser?._id || application.companyId
+					);
 				}
 			} catch (chatError) {
 				console.error('❌ Error creating chat room:', chatError);

@@ -272,6 +272,38 @@ class ApiService {
     }
   }
 
+  Future<Response> getChatConversations() async {
+    try {
+      print('ApiService: Getting chat conversations');
+      return await _dio.get('/chat/conversations');
+    } catch (e) {
+      print('ApiService: Get chat conversations error: $e');
+      rethrow;
+    }
+  }
+
+  Future<Response> getChatByApplicationId(String applicationId) async {
+    try {
+      print('ApiService: Getting chat for application: $applicationId');
+      return await _dio.get('/chat/$applicationId');
+    } catch (e) {
+      print('ApiService: Get chat by application error: $e');
+      rethrow;
+    }
+  }
+
+  Future<Response> sendChatMessage(String applicationId, String message) async {
+    try {
+      print('ApiService: Sending message to application: $applicationId');
+      return await _dio.post('/chat/$applicationId/messages', data: {
+        'message': message,
+      });
+    } catch (e) {
+      print('ApiService: Send chat message error: $e');
+      rethrow;
+    }
+  }
+
   Future<Response> applyForJobWithFile({
     required Map<String, dynamic> data,
     File? cvFile,

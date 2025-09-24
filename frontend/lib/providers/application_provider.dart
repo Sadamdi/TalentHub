@@ -286,6 +286,54 @@ class ApplicationProvider extends ChangeNotifier {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getChatConversations() async {
+    try {
+      final response = await _apiService.getChatConversations();
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(response.data['data']['chats'] ?? []);
+      } else {
+        _setError('Failed to load chat conversations');
+        return [];
+      }
+    } catch (e) {
+      print('ApplicationProvider: Error loading chat conversations: $e');
+      _setError('Error loading chat conversations: $e');
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> getChatByApplicationId(String applicationId) async {
+    try {
+      final response = await _apiService.getChatByApplicationId(applicationId);
+      if (response.statusCode == 200) {
+        return response.data['data']['chat'];
+      } else {
+        _setError('Failed to load chat');
+        return {};
+      }
+    } catch (e) {
+      print('ApplicationProvider: Error loading chat: $e');
+      _setError('Error loading chat: $e');
+      return {};
+    }
+  }
+
+  Future<Map<String, dynamic>> sendChatMessage(String applicationId, String message) async {
+    try {
+      final response = await _apiService.sendChatMessage(applicationId, message);
+      if (response.statusCode == 201) {
+        return response.data['data']['message'];
+      } else {
+        _setError('Failed to send message');
+        return {};
+      }
+    } catch (e) {
+      print('ApplicationProvider: Error sending message: $e');
+      _setError('Error sending message: $e');
+      return {};
+    }
+  }
+
   Future<bool> cancelApplication(String applicationId) async {
     _setLoading(true);
     _clearError();
