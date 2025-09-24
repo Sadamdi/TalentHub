@@ -419,22 +419,18 @@ router.get('/company-jobs', [auth, requireCompanyOrAdmin], async (req, res) => {
 					lastName: req.user.lastName,
 				});
 
-				// Don't auto-create, return empty results and let company create profile properly
-				return res.json({
-					success: true,
-					message:
-						'Company profile not found. Please complete your company profile first.',
-					data: {
-						jobs: [],
-						pagination: {
-							currentPage: 1,
-							totalPages: 0,
-							totalJobs: 0,
-							hasNext: false,
-							hasPrev: false,
-						},
-					},
+				// Auto-create company profile
+				console.log('🏗️ Auto-creating company profile...');
+				company = new Company({
+					userId: req.user._id,
+					companyName: `${req.user.firstName} ${req.user.lastName}`,
+					description: 'Deskripsi perusahaan belum diisi',
+					industry: 'Technology',
+					location: req.user.location || 'Jakarta',
+					phone: req.user.phoneNumber || '+6281234567890',
 				});
+				await company.save();
+				console.log('✅ Company profile auto-created:', company._id);
 			}
 
 			const page = parseInt(req.query.page) || 1;

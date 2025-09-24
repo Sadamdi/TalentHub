@@ -171,26 +171,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Container(
-                                width: 54,
-                                height: 21,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                                child: const Center(
-                                  child: Text(
-                                    '9:41',
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 16,
-                                      fontFamily: 'SF Pro Text',
-                                      fontWeight: FontWeight.w600,
-                                      height: 1.31,
-                                      letterSpacing: -0.32,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                              // Clock removed as requested
                             ],
                           ),
                         ),
