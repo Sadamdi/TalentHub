@@ -27,6 +27,87 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
     jobProvider.getCompanyJobs();
   }
 
+  Future<void> _showEditJobDialog(BuildContext context, Job job) async {
+    final TextEditingController titleController =
+        TextEditingController(text: job.title);
+    final TextEditingController locationController =
+        TextEditingController(text: job.location);
+    final TextEditingController salaryController =
+        TextEditingController(text: job.salary.toString());
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Job'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: 'Job Title'),
+            ),
+            TextField(
+              controller: locationController,
+              decoration: const InputDecoration(labelText: 'Location'),
+            ),
+            TextField(
+              controller: salaryController,
+              decoration: const InputDecoration(labelText: 'Salary'),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final jobProvider =
+                  Provider.of<JobProvider>(context, listen: false);
+              final success = await jobProvider.updateJob(job.id, {
+                'title': titleController.text,
+                'location': locationController.text,
+                'salary': {'amount': int.tryParse(salaryController.text) ?? 0},
+              });
+
+              if (success) {
+                Navigator.of(context).pop();
+                _loadJobs();
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _viewApplications(BuildContext context, Job job) async {
+    final jobProvider = Provider.of<JobProvider>(context, listen: false);
+    await jobProvider.getJob(job.id);
+
+    if (jobProvider.selectedJob != null) {
+      // TODO: Navigate to applications screen for this job
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Viewing applications for: ${job.title}')),
+      );
+    }
+  }
+
+  Future<void> _toggleJobStatus(
+      BuildContext context, Job job, bool activate) async {
+    final jobProvider = Provider.of<JobProvider>(context, listen: false);
+    final success = activate
+        ? await jobProvider.activateJob(job.id)
+        : await jobProvider.deactivateJob(job.id);
+
+    if (success) {
+      _loadJobs();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -274,17 +355,20 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
                                 ),
                               ),
                             ],
-                            onSelected: (value) {
+                            onSelected: (value) async {
                               switch (value) {
                                 case 'edit':
                                   // TODO: Navigate to edit job screen
+                                  _showEditJobDialog(context, job);
                                   break;
                                 case 'view_applications':
-                                  // TODO: Navigate to applications for this job
+                                  await _viewApplications(context, job);
                                   break;
                                 case 'activate':
+                                  await _toggleJobStatus(context, job, true);
+                                  break;
                                 case 'deactivate':
-                                  // TODO: Toggle job status
+                                  await _toggleJobStatus(context, job, false);
                                   break;
                               }
                             },

@@ -193,6 +193,7 @@ class ApiService {
   Future<Response> applyForJob(Map<String, dynamic> data) async {
     // Try /applications first (original)
     try {
+      print('ApiService: Trying /applications endpoint');
       return await _dio.post('/applications', data: data);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
@@ -201,13 +202,16 @@ class ApiService {
         if (jobId != null) {
           // Try /jobs/{jobId}/apply (correct backend endpoint)
           try {
+            print('ApiService: Trying /jobs/$jobId/apply endpoint');
             return await _dio.post('/jobs/$jobId/apply', data: data);
           } on DioException catch (_) {
             // Try /jobs/{jobId}/applications as fallback
             try {
+              print('ApiService: Trying /jobs/$jobId/applications endpoint');
               return await _dio.post('/jobs/$jobId/applications', data: data);
             } on DioException catch (_) {
               // Try /applications/apply/{jobId} as last resort
+              print('ApiService: Trying /applications/apply/$jobId endpoint');
               return await _dio.post('/applications/apply/$jobId', data: data);
             }
           }
@@ -234,6 +238,7 @@ class ApiService {
 
     // Try /applications first (original)
     try {
+      print('ApiService: Trying /applications endpoint (with file)');
       return await _dio.post('/applications', data: formData);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
@@ -242,14 +247,19 @@ class ApiService {
         if (jobId != null) {
           // Try /jobs/{jobId}/apply (correct backend endpoint)
           try {
+            print('ApiService: Trying /jobs/$jobId/apply endpoint (with file)');
             return await _dio.post('/jobs/$jobId/apply', data: formData);
           } on DioException catch (_) {
             // Try /jobs/{jobId}/applications as fallback
             try {
+              print(
+                  'ApiService: Trying /jobs/$jobId/applications endpoint (with file)');
               return await _dio.post('/jobs/$jobId/applications',
                   data: formData);
             } on DioException catch (_) {
               // Try /applications/apply/{jobId} as last resort
+              print(
+                  'ApiService: Trying /applications/apply/$jobId endpoint (with file)');
               return await _dio.post('/applications/apply/$jobId',
                   data: formData);
             }

@@ -238,6 +238,48 @@ class JobProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> activateJob(String jobId) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final response = await _apiService.adminActivateJob(jobId);
+      if (response.statusCode == 200) {
+        await getCompanyJobs(); // Refresh company jobs
+        return true;
+      } else {
+        _setError(response.data['message'] ?? 'Gagal mengaktifkan lowongan');
+        return false;
+      }
+    } catch (e) {
+      _handleError(e);
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> deactivateJob(String jobId) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final response = await _apiService.adminDeactivateJob(jobId);
+      if (response.statusCode == 200) {
+        await getCompanyJobs(); // Refresh company jobs
+        return true;
+      } else {
+        _setError(response.data['message'] ?? 'Gagal menonaktifkan lowongan');
+        return false;
+      }
+    } catch (e) {
+      _handleError(e);
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<void> getJobRecommendations({
     String category = 'all',
     int limit = 10,

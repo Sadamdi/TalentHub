@@ -127,11 +127,18 @@ class ApplicationProvider extends ChangeNotifier {
     _setLoading(true);
     _clearError();
 
+    // Debug: print jobId to check if it's valid
+    print('ApplicationProvider: Applying for jobId: $jobId');
+    print('ApplicationProvider: Cover letter: $coverLetter');
+
     try {
       final response = await _apiService.applyForJob({
         'jobId': jobId,
         'coverLetter': coverLetter,
       });
+
+      print('ApplicationProvider: Response status: ${response.statusCode}');
+      print('ApplicationProvider: Response data: ${response.data}');
 
       if (response.statusCode == 201) {
         await getApplications(); // Refresh applications
@@ -141,6 +148,7 @@ class ApplicationProvider extends ChangeNotifier {
         return false;
       }
     } catch (e) {
+      print('ApplicationProvider: Error: $e');
       _handleError(e);
       return false;
     } finally {
