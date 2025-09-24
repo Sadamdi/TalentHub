@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/application_provider.dart';
 import '../../utils/app_colors.dart';
+import '../applications/chat_screen.dart';
 
 class CompanyChatScreen extends StatefulWidget {
   const CompanyChatScreen({super.key});
@@ -37,14 +38,14 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
       body: Consumer<ApplicationProvider>(
         builder: (context, applicationProvider, child) {
           if (applicationProvider.isLoading &&
-              applicationProvider.applications.isEmpty) {
+              applicationProvider.companyApplications.isEmpty) {
             return const Center(
               child: CircularProgressIndicator(),
             );
           }
 
           if (applicationProvider.error != null &&
-              applicationProvider.applications.isEmpty) {
+              applicationProvider.companyApplications.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -73,7 +74,7 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
             );
           }
 
-          if (applicationProvider.applications.isEmpty) {
+          if (applicationProvider.companyApplications.isEmpty) {
             return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -107,14 +108,14 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
           }
 
           // Group applications by status
-          final pendingApps = applicationProvider.applications
+          final pendingApps = applicationProvider.companyApplications
               .where((app) => app.status == 'pending')
               .toList();
-          final acceptedApps = applicationProvider.applications
-              .where((app) => app.status == 'accepted')
+          final acceptedApps = applicationProvider.companyApplications
+              .where((app) => app.status == 'hired')
               .toList();
-          final otherApps = applicationProvider.applications
-              .where((app) => !['pending', 'accepted'].contains(app.status))
+          final otherApps = applicationProvider.companyApplications
+              .where((app) => !['pending', 'hired'].contains(app.status))
               .toList();
 
           return ListView(
@@ -222,10 +223,10 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
           ),
         ),
         onTap: () {
-          // TODO: Navigate to chat detail screen
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Fitur chat akan segera tersedia'),
+          // Navigate to chat screen for this application
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => ChatScreen(applicationId: app.id),
             ),
           );
         },
@@ -237,7 +238,7 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
     switch (status.toLowerCase()) {
       case 'pending':
         return AppColors.warning;
-      case 'accepted':
+      case 'hired':
         return AppColors.success;
       case 'rejected':
         return AppColors.error;
@@ -252,8 +253,8 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
     switch (status.toLowerCase()) {
       case 'pending':
         return 'Pending';
-      case 'accepted':
-        return 'Accepted';
+      case 'hired':
+        return 'Hired';
       case 'rejected':
         return 'Rejected';
       case 'interview':

@@ -38,14 +38,14 @@ class _CompanyApplicationsScreenState extends State<CompanyApplicationsScreen> {
       body: Consumer<ApplicationProvider>(
         builder: (context, applicationProvider, child) {
           if (applicationProvider.isLoading &&
-              applicationProvider.applications.isEmpty) {
+              applicationProvider.companyApplications.isEmpty) {
             return const Center(
               child: CircularProgressIndicator(),
             );
           }
 
           if (applicationProvider.error != null &&
-              applicationProvider.applications.isEmpty) {
+              applicationProvider.companyApplications.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -74,7 +74,7 @@ class _CompanyApplicationsScreenState extends State<CompanyApplicationsScreen> {
             );
           }
 
-          if (applicationProvider.applications.isEmpty) {
+          if (applicationProvider.companyApplications.isEmpty) {
             return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -109,9 +109,10 @@ class _CompanyApplicationsScreenState extends State<CompanyApplicationsScreen> {
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: applicationProvider.applications.length,
+            itemCount: applicationProvider.companyApplications.length,
             itemBuilder: (context, index) {
-              final application = applicationProvider.applications[index];
+              final application =
+                  applicationProvider.companyApplications[index];
               return Card(
                 margin: const EdgeInsets.only(bottom: 16),
                 child: Padding(
@@ -192,7 +193,7 @@ class _CompanyApplicationsScreenState extends State<CompanyApplicationsScreen> {
                             child: ElevatedButton.icon(
                               onPressed: application.status == 'pending'
                                   ? () => _updateApplicationStatus(
-                                      application.id, 'accepted')
+                                      application.id, 'hired')
                                   : null,
                               icon: const Icon(Icons.check),
                               label: const Text('Accept'),
@@ -252,9 +253,9 @@ class _CompanyApplicationsScreenState extends State<CompanyApplicationsScreen> {
         color = AppColors.warning;
         text = 'Pending';
         break;
-      case 'accepted':
+      case 'hired':
         color = AppColors.success;
-        text = 'Accepted';
+        text = 'Hired';
         break;
       case 'rejected':
         color = AppColors.error;

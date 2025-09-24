@@ -6,6 +6,7 @@ import '../../providers/job_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/app_colors.dart';
 import 'company_create_job_screen.dart';
+import 'job_applications_screen.dart';
 
 class CompanyJobsScreen extends StatefulWidget {
   const CompanyJobsScreen({super.key});
@@ -31,32 +32,89 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
   Future<void> _showEditJobDialog(BuildContext context, Job job) async {
     final TextEditingController titleController =
         TextEditingController(text: job.title);
+    final TextEditingController descriptionController =
+        TextEditingController(text: job.description);
     final TextEditingController locationController =
         TextEditingController(text: job.location);
     final TextEditingController salaryController =
         TextEditingController(text: job.salary.toString());
+    final TextEditingController jobTypeController =
+        TextEditingController(text: job.jobType);
+    final TextEditingController categoryController =
+        TextEditingController(text: job.category);
+    final TextEditingController experienceLevelController =
+        TextEditingController(text: job.experienceLevel);
+    final TextEditingController skillsController =
+        TextEditingController(text: job.skills.join(', '));
+    final TextEditingController requirementsController =
+        TextEditingController(text: job.requirements.join('\n'));
+    final TextEditingController responsibilitiesController =
+        TextEditingController(text: job.responsibilities.join('\n'));
+    final TextEditingController benefitsController =
+        TextEditingController(text: job.benefits.join('\n'));
 
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Edit Job'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(labelText: 'Job Title'),
-            ),
-            TextField(
-              controller: locationController,
-              decoration: const InputDecoration(labelText: 'Location'),
-            ),
-            TextField(
-              controller: salaryController,
-              decoration: const InputDecoration(labelText: 'Salary'),
-              keyboardType: TextInputType.number,
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'Job Title'),
+              ),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(labelText: 'Description'),
+                maxLines: 3,
+              ),
+              TextField(
+                controller: locationController,
+                decoration: const InputDecoration(labelText: 'Location'),
+              ),
+              TextField(
+                controller: salaryController,
+                decoration: const InputDecoration(labelText: 'Salary'),
+                keyboardType: TextInputType.number,
+              ),
+              TextField(
+                controller: jobTypeController,
+                decoration: const InputDecoration(labelText: 'Job Type'),
+              ),
+              TextField(
+                controller: categoryController,
+                decoration: const InputDecoration(labelText: 'Category'),
+              ),
+              TextField(
+                controller: experienceLevelController,
+                decoration:
+                    const InputDecoration(labelText: 'Experience Level'),
+              ),
+              TextField(
+                controller: skillsController,
+                decoration: const InputDecoration(
+                    labelText: 'Skills (comma separated)'),
+              ),
+              TextField(
+                controller: requirementsController,
+                decoration: const InputDecoration(labelText: 'Requirements'),
+                maxLines: 3,
+              ),
+              TextField(
+                controller: responsibilitiesController,
+                decoration:
+                    const InputDecoration(labelText: 'Responsibilities'),
+                maxLines: 3,
+              ),
+              TextField(
+                controller: benefitsController,
+                decoration: const InputDecoration(labelText: 'Benefits'),
+                maxLines: 2,
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -67,10 +125,49 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
             onPressed: () async {
               final jobProvider =
                   Provider.of<JobProvider>(context, listen: false);
+
+              // Parse skills
+              final skills = skillsController.text
+                  .split(',')
+                  .map((s) => s.trim())
+                  .where((s) => s.isNotEmpty)
+                  .toList();
+
+              // Parse requirements and responsibilities
+              final requirements = requirementsController.text
+                  .split('\n')
+                  .map((s) => s.trim())
+                  .where((s) => s.isNotEmpty)
+                  .toList();
+
+              final responsibilities = responsibilitiesController.text
+                  .split('\n')
+                  .map((s) => s.trim())
+                  .where((s) => s.isNotEmpty)
+                  .toList();
+
+              final benefits = benefitsController.text
+                  .split('\n')
+                  .map((s) => s.trim())
+                  .where((s) => s.isNotEmpty)
+                  .toList();
+
               final success = await jobProvider.updateJob(job.id, {
                 'title': titleController.text,
+                'description': descriptionController.text,
                 'location': locationController.text,
-                'salary': {'amount': int.tryParse(salaryController.text) ?? 0},
+                'jobType': jobTypeController.text,
+                'category': categoryController.text,
+                'experienceLevel': experienceLevelController.text,
+                'skills': skills,
+                'requirements': requirements,
+                'responsibilities': responsibilities,
+                'benefits': benefits,
+                'salary': {
+                  'amount': int.tryParse(salaryController.text) ?? 0,
+                  'currency': 'IDR',
+                  'period': 'monthly'
+                },
               });
 
               if (success) {
@@ -90,9 +187,11 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
     await jobProvider.getJob(job.id);
 
     if (jobProvider.selectedJob != null) {
-      // TODO: Navigate to applications screen for this job
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Viewing applications for: ${job.title}')),
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) =>
+              JobApplicationsScreen(jobId: job.id, jobTitle: job.title),
+        ),
       );
     }
   }

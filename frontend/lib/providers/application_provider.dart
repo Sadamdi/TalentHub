@@ -11,12 +11,14 @@ class ApplicationProvider extends ChangeNotifier {
   List<Application> _applications = [];
   List<Application> _companyApplications = [];
   Application? _selectedApplication;
+  Map<String, dynamic>? _chat;
   bool _isLoading = false;
   String? _error;
 
   List<Application> get applications => _applications;
   List<Application> get companyApplications => _companyApplications;
   Application? get selectedApplication => _selectedApplication;
+  Map<String, dynamic>? get chat => _chat;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -30,6 +32,11 @@ class ApplicationProvider extends ChangeNotifier {
 
   void _clearError() {
     _error = null;
+  }
+
+  void _setChat(Map<String, dynamic>? chat) {
+    _chat = chat;
+    notifyListeners();
   }
 
   void _setError(String error) {
@@ -237,7 +244,7 @@ class ApplicationProvider extends ChangeNotifier {
       print('ApplicationProvider: Response data: ${response.data}');
 
       if (response.statusCode == 200) {
-        await getApplications(); // Refresh applications
+        await getCompanyApplications(); // Refresh company applications
         return {'success': true, 'message': 'Status updated successfully'};
       } else {
         _setError(response.data['message'] ?? 'Failed to update status');
@@ -286,11 +293,80 @@ class ApplicationProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> acceptApplication(String applicationId) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final response = await _apiService.updateApplicationStatus(
+        applicationId: applicationId,
+        status: 'accepted',
+      );
+      if (response.statusCode == 200) {
+        await getApplication(applicationId);
+        return true;
+      } else {
+        _setError('Failed to accept application');
+        return false;
+      }
+    } catch (e) {
+      print('ApplicationProvider: Error accepting application: $e');
+      _handleError(e);
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> rejectApplication(String applicationId) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final response = await _apiService.updateApplicationStatus(
+        applicationId: applicationId,
+        status: 'rejected',
+      );
+      if (response.statusCode == 200) {
+        await getApplication(applicationId);
+        return true;
+      } else {
+        _setError('Failed to reject application');
+        return false;
+      }
+    } catch (e) {
+      print('ApplicationProvider: Error rejecting application: $e');
+      _handleError(e);
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> getApplicationsByJobId(String jobId) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final response = await _apiService.getApplicationsByJobId(jobId);
+      if (response.statusCode == 200) {
+        _companyApplications = (response.data['data']['applications'] as List)
+            .map((app) => Application.fromJson(app))
+            .toList();
+      }
+    } catch (e) {
+      _handleError(e);
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getChatConversations() async {
     try {
       final response = await _apiService.getChatConversations();
       if (response.statusCode == 200) {
-        return List<Map<String, dynamic>>.from(response.data['data']['chats'] ?? []);
+        return List<Map<String, dynamic>>.from(
+            response.data['data']['chats'] ?? []);
       } else {
         _setError('Failed to load chat conversations');
         return [];
@@ -302,26 +378,33 @@ class ApplicationProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> getChatByApplicationId(String applicationId) async {
+  Future<void> getChatByApplicationId(String applicationId) async {
+    _setLoading(true);
+    _clearError();
+
     try {
       final response = await _apiService.getChatByApplicationId(applicationId);
       if (response.statusCode == 200) {
-        return response.data['data']['chat'];
+        _setChat(response.data['data']['chat']);
       } else {
         _setError('Failed to load chat');
-        return {};
       }
     } catch (e) {
       print('ApplicationProvider: Error loading chat: $e');
       _setError('Error loading chat: $e');
-      return {};
+    } finally {
+      _setLoading(false);
     }
   }
 
-  Future<Map<String, dynamic>> sendChatMessage(String applicationId, String message) async {
+  Future<Map<String, dynamic>> sendChatMessage(
+      String applicationId, String message) async {
     try {
-      final response = await _apiService.sendChatMessage(applicationId, message);
+      final response =
+          await _apiService.sendChatMessage(applicationId, message, 'talent');
       if (response.statusCode == 201) {
+        // Refresh chat after sending message
+        await getChatByApplicationId(applicationId);
         return response.data['data']['message'];
       } else {
         _setError('Failed to send message');

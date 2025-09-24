@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/application_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../utils/app_colors.dart';
 import '../../widgets/application_status_badge.dart';
 
@@ -28,8 +29,17 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     });
   }
 
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Declare these variables here
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final isCompany = authProvider.user?.role == 'admin' ||
+        authProvider.user?.role == 'company';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detail Lamaran'),
@@ -297,33 +307,160 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                 const SizedBox(height: 16),
 
                 // Action buttons
-                if (application.status.toLowerCase() == 'pending') ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            _showCancelDialog(
-                                context, applicationProvider, application.id);
-                          },
-                          icon: const Icon(Icons.cancel),
-                          label: const Text('Batalkan Lamaran'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.error,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                if (application.status.toLowerCase() == 'pending')
+                  if (isCompany)
+                    // Company actions: Accept/Reject
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              _showAcceptDialog(
+                                  context, applicationProvider, application.id);
+                            },
+                            icon: const Icon(Icons.check_circle),
+                            label: const Text('Terima'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.success,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
                           ),
                         ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              _showRejectDialog(
+                                  context, applicationProvider, application.id);
+                            },
+                            icon: const Icon(Icons.cancel),
+                            label: const Text('Tolak'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.error,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    // Talent action: Cancel
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          _showCancelDialog(
+                              context, applicationProvider, application.id);
+                        },
+                        icon: const Icon(Icons.cancel),
+                        label: const Text('Batalkan Lamaran'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.grey,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
                       ),
-                    ],
-                  ),
-                ],
+                    )
               ],
             ),
           );
         },
       ),
     );
+  }
+
+  Future<void> _showAcceptDialog(BuildContext context,
+      ApplicationProvider provider, String applicationId) async {
+    final success = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Terima Lamaran'),
+          content: const Text('Apakah Anda yakin ingin menerima lamaran ini?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.success,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Ya, Terima'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (success == true) {
+      final result = await provider.acceptApplication(applicationId);
+      if (result) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Lamaran berhasil diterima'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(provider.error ?? 'Gagal menerima lamaran'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showRejectDialog(BuildContext context,
+      ApplicationProvider provider, String applicationId) async {
+    final success = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Tolak Lamaran'),
+          content: const Text('Apakah Anda yakin ingin menolak lamaran ini?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Ya, Tolak'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (success == true) {
+      final result = await provider.rejectApplication(applicationId);
+      if (result) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Lamaran berhasil ditolak'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(provider.error ?? 'Gagal menolak lamaran'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   void _showCancelDialog(BuildContext context, ApplicationProvider provider,
@@ -392,9 +529,5 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         );
       },
     );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
   }
 }

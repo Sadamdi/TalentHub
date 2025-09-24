@@ -185,6 +185,10 @@ class ApiService {
     return await _dio.get('/applications/company');
   }
 
+  Future<Response> getApplicationsByJobId(String jobId) async {
+    return await _dio.get('/applications/job/$jobId');
+  }
+
   Future<Response> getApplication(String applicationId) async {
     return await _dio.get('/applications/$applicationId');
   }
@@ -292,11 +296,14 @@ class ApiService {
     }
   }
 
-  Future<Response> sendChatMessage(String applicationId, String message) async {
+  Future<Response> sendChatMessage(
+      String applicationId, String message, String senderRole) async {
     try {
-      print('ApiService: Sending message to application: $applicationId');
+      print(
+          'ApiService: Sending message to application: $applicationId with role: $senderRole');
       return await _dio.post('/chat/$applicationId/messages', data: {
         'message': message,
+        'senderRole': senderRole,
       });
     } catch (e) {
       print('ApiService: Send chat message error: $e');

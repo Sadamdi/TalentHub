@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../utils/app_colors.dart';
+import '../profile/edit_company_profile_screen.dart';
 
 class CompanyProfileScreen extends StatefulWidget {
   const CompanyProfileScreen({super.key});
@@ -35,10 +36,9 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
               IconButton(
                 icon: const Icon(Icons.edit),
                 onPressed: () {
-                  // TODO: Navigate to edit company profile screen
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Edit profile feature coming soon!'),
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const EditCompanyProfileScreen(),
                     ),
                   );
                 },
@@ -148,11 +148,10 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                         title: 'Edit Profil Perusahaan',
                         subtitle: 'Ubah informasi perusahaan',
                         onTap: () {
-                          // TODO: Navigate to edit company profile
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content:
-                                  Text('Edit profile feature coming soon!'),
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const EditCompanyProfileScreen(),
                             ),
                           );
                         },

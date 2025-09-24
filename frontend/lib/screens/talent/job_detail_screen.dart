@@ -5,6 +5,7 @@ import '../../providers/application_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/job_provider.dart';
 import '../../utils/app_colors.dart';
+import '../applications/chat_screen.dart';
 import 'apply_job_screen.dart';
 
 class JobDetailScreen extends StatefulWidget {
@@ -44,38 +45,41 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   }
 
   Future<void> _applyForJob() async {
-    if (_isApplying) return;
-
-    setState(() {
-      _isApplying = true;
-    });
-
-    final applicationProvider =
-        Provider.of<ApplicationProvider>(context, listen: false);
-
-    final result = await applicationProvider.applyForJob(
-      jobId: widget.jobId,
-      fullName: 'Test User', // TODO: Get from user profile
-      email: 'test@example.com', // TODO: Get from user profile
-      phone: '+6281234567890', // TODO: Get from user profile
-      coverLetter: 'Saya tertarik dengan posisi ini dan ingin melamar.',
-    );
-
     // Navigate to ApplyJobScreen instead of directly applying
     final jobProvider = Provider.of<JobProvider>(context, listen: false);
     final job = jobProvider.getJobById(widget.jobId);
 
-    Navigator.of(context).push(
+    Navigator.of(context)
+        .push(
       MaterialPageRoute(
         builder: (context) => ApplyJobScreen(
           jobId: widget.jobId,
           job: job,
         ),
       ),
-    ).then((_) {
+    )
+        .then((_) {
       // Refresh applications when returning from ApplyJobScreen
       _refreshApplications();
     });
+  }
+
+  Future<void> _openChat() async {
+    // Find the application for this job
+    final applicationProvider =
+        Provider.of<ApplicationProvider>(context, listen: false);
+    final application = applicationProvider.applications
+        .firstWhere((app) => app.jobId == widget.jobId);
+
+    if (application != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => ChatScreen(
+            applicationId: application.id,
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _refreshApplications() async {
@@ -98,7 +102,6 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     setState(() {
       _isApplying = false;
     });
-  }
   }
 
   @override
@@ -582,23 +585,44 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               ),
             ),
             const SizedBox(width: 16),
-            Container(
-              width: 78,
-              height: 48,
-              padding: const EdgeInsets.symmetric(horizontal: 27, vertical: 11),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  width: 1,
+            if (_hasApplied)
+              Container(
+                width: 78,
+                height: 48,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 27, vertical: 11),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: InkWell(
+                  onTap: _openChat,
+                  child: const Icon(
+                    Icons.chat_bubble_outline,
+                    size: 24,
+                    color: Colors.white,
+                  ),
+                ),
+              )
+            else
+              Container(
+                width: 78,
+                height: 48,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 27, vertical: 11),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    width: 1,
+                    color: AppColors.primary,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.bookmark_border,
+                  size: 24,
                   color: AppColors.primary,
                 ),
-                borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
-                Icons.bookmark_border,
-                size: 24,
-                color: AppColors.primary,
-              ),
-            ),
           ],
         ),
       ),

@@ -18,7 +18,14 @@ const applicationSchema = new mongoose.Schema({
 	},
 	status: {
 		type: String,
-		enum: ['pending', 'reviewed', 'interview', 'hired', 'rejected'],
+		enum: [
+			'pending',
+			'reviewed',
+			'interview',
+			'hired',
+			'rejected',
+			'cancelled',
+		],
 		default: 'pending',
 	},
 	coverLetter: {
@@ -59,7 +66,14 @@ const applicationSchema = new mongoose.Schema({
 		{
 			status: {
 				type: String,
-				enum: ['pending', 'reviewed', 'interview', 'hired', 'rejected'],
+				enum: [
+					'pending',
+					'reviewed',
+					'interview',
+					'hired',
+					'rejected',
+					'cancelled',
+				],
 			},
 			changedAt: {
 				type: Date,

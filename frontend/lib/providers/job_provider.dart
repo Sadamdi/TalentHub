@@ -141,6 +141,14 @@ class JobProvider extends ChangeNotifier {
     }
   }
 
+  Job? getJobById(String jobId) {
+    try {
+      return _jobs.firstWhere((job) => job.id == jobId);
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<void> getJob(String jobId) async {
     _setLoading(true);
     _clearError();
@@ -264,7 +272,7 @@ class JobProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final response = await _apiService.adminDeactivateJob(jobId);
+      final response = await _apiService.deleteJob(jobId);
       if (response.statusCode == 200) {
         await getCompanyJobs(); // Refresh company jobs
         return true;
