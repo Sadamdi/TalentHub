@@ -344,17 +344,25 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
+                // Close dialog first
                 Navigator.of(context).pop();
+
                 final success = await provider.cancelApplication(applicationId);
-                if (success && mounted) {
-                  Navigator.of(context).pop(); // Kembali ke halaman sebelumnya
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Lamaran berhasil dibatalkan'),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
-                } else if (mounted) {
+
+                // Since we're in a dialog context, we need to be careful
+                if (success) {
+                  // Navigate back to previous screen
+                  Navigator.of(context).pop();
+                  // Show success message after navigation completes
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Lamaran berhasil dibatalkan'),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  });
+                } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content:

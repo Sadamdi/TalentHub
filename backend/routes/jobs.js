@@ -365,6 +365,8 @@ router.get('/company-jobs', [auth, requireCompanyOrAdmin], async (req, res) => {
 
 			total = await Job.countDocuments();
 
+			console.log(`Admin found ${jobs.length} jobs out of ${total} total jobs`);
+
 			res.json({
 				success: true,
 				message: 'Admin accessing all jobs',
@@ -379,8 +381,8 @@ router.get('/company-jobs', [auth, requireCompanyOrAdmin], async (req, res) => {
 					},
 				},
 			});
-		} else if (req.user.role === 'company') {
-			// Regular company gets only their jobs
+		} else {
+			// Company gets only their jobs
 			const company = await Company.findOne({ userId: req.user._id });
 			if (!company) {
 				return res.status(404).json({

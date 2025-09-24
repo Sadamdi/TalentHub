@@ -20,7 +20,6 @@ router.post('/upload', [auth, requireRole(['talent'])], async (req, res) => {
 
 		const uploadedFile = req.files[0]; // Get first uploaded file
 
-
 		const fileInfo = {
 			fileName: uploadedFile.filename,
 			originalName: uploadedFile.originalname,

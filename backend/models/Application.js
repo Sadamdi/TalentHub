@@ -55,35 +55,37 @@ const applicationSchema = new mongoose.Schema({
 		type: String,
 	},
 	// Status history tracking
-	statusHistory: [{
-		status: {
-			type: String,
-			enum: ['pending', 'reviewed', 'interview', 'hired', 'rejected']
+	statusHistory: [
+		{
+			status: {
+				type: String,
+				enum: ['pending', 'reviewed', 'interview', 'hired', 'rejected'],
+			},
+			changedAt: {
+				type: Date,
+				default: Date.now,
+			},
+			changedBy: {
+				type: mongoose.Schema.Types.ObjectId,
+				ref: 'User',
+			},
+			notes: {
+				type: String,
+				default: '',
+			},
 		},
-		changedAt: {
-			type: Date,
-			default: Date.now
-		},
-		changedBy: {
-			type: mongoose.Schema.Types.ObjectId,
-			ref: 'User'
-		},
-		notes: {
-			type: String,
-			default: ''
-		}
-	}],
+	],
 	// File deletion tracking
 	fileDeleted: {
 		type: Boolean,
-		default: false
+		default: false,
 	},
 	fileDeletedAt: {
-		type: Date
+		type: Date,
 	},
 	fileDeletedBy: {
 		type: mongoose.Schema.Types.ObjectId,
-		ref: 'User'
+		ref: 'User',
 	},
 	createdAt: {
 		type: Date,
@@ -103,7 +105,7 @@ applicationSchema.pre('save', function (next) {
 			status: this.status,
 			changedAt: new Date(),
 			changedBy: null, // Will be set by controller
-			notes: `Status changed to ${this.status}`
+			notes: `Status changed to ${this.status}`,
 		});
 	}
 

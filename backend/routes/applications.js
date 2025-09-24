@@ -1,6 +1,10 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const { auth, requireRole, requireCompanyOrAdmin } = require('../middleware/auth');
+const {
+	auth,
+	requireRole,
+	requireCompanyOrAdmin,
+} = require('../middleware/auth');
 const Application = require('../models/Application');
 const Job = require('../models/Job');
 const Talent = require('../models/Talent');
@@ -55,7 +59,7 @@ router.post(
 				coverLetter,
 				experienceYears,
 				skills,
-				resumeUrl
+				resumeUrl,
 			} = req.body;
 
 			// Check if job exists and is active
@@ -102,12 +106,12 @@ router.post(
 
 			// Update talent profile with application data
 			if (fullName) talent.name = fullName;
-			if (email) {
-				talent.userId = { ...talent.userId, email };
-			}
 			if (phone) talent.phone = phone;
 			if (experienceYears) talent.experience = experienceYears;
 			if (skills) talent.skills = skills;
+
+			// Note: Email update should be done through user profile update, not talent profile
+			// For now, we'll skip email update to avoid userId reference issues
 
 			await talent.save();
 
@@ -140,7 +144,7 @@ router.post(
 			await application.populate([
 				{
 					path: 'talentId',
-					select: 'name skills experience phone',
+					select: 'name skills experience phone userId',
 					populate: { path: 'userId', select: 'email' },
 				},
 				{
@@ -152,7 +156,9 @@ router.post(
 
 			// Create chat room for this application
 			try {
-				const existingChat = await Chat.findOne({ applicationId: application._id });
+				const existingChat = await Chat.findOne({
+					applicationId: application._id,
+				});
 				if (!existingChat) {
 					const chat = new Chat({
 						applicationId: application._id,
@@ -162,7 +168,7 @@ router.post(
 						lastMessage: '',
 						lastMessageTime: new Date(),
 						talentUnreadCount: 0,
-						companyUnreadCount: 0
+						companyUnreadCount: 0,
 					});
 					await chat.save();
 					console.log('✅ Chat room created for application:', application._id);
@@ -196,11 +202,17 @@ router.put('/:id/status', [auth, requireCompanyOrAdmin], async (req, res) => {
 		const applicationId = req.params.id;
 
 		// Validate status
-		const validStatuses = ['pending', 'reviewed', 'interview', 'hired', 'rejected'];
+		const validStatuses = [
+			'pending',
+			'reviewed',
+			'interview',
+			'hired',
+			'rejected',
+		];
 		if (!validStatuses.includes(status)) {
 			return res.status(400).json({
 				success: false,
-				message: 'Invalid status'
+				message: 'Invalid status',
 			});
 		}
 
@@ -209,15 +221,18 @@ router.put('/:id/status', [auth, requireCompanyOrAdmin], async (req, res) => {
 		if (!application) {
 			return res.status(404).json({
 				success: false,
-				message: 'Lamaran tidak ditemukan'
+				message: 'Lamaran tidak ditemukan',
 			});
 		}
 
 		// Check permissions (company can only update their own applications)
-		if (req.user.role === 'company' && application.companyId.toString() !== req.user._id.toString()) {
+		if (
+			req.user.role === 'company' &&
+			application.companyId.toString() !== req.user._id.toString()
+		) {
 			return res.status(403).json({
 				success: false,
-				message: 'Akses ditolak'
+				message: 'Akses ditolak',
 			});
 		}
 
@@ -232,7 +247,7 @@ router.put('/:id/status', [auth, requireCompanyOrAdmin], async (req, res) => {
 			status: status,
 			changedAt: new Date(),
 			changedBy: req.user._id,
-			notes: notes || `Status changed from ${oldStatus} to ${status}`
+			notes: notes || `Status changed from ${oldStatus} to ${status}`,
 		});
 
 		// Set appropriate timestamps
@@ -243,9 +258,18 @@ router.put('/:id/status', [auth, requireCompanyOrAdmin], async (req, res) => {
 		}
 
 		// Delete CV file if status is hired or rejected
-		if ((status === 'hired' || status === 'rejected') && application.resumeUrl) {
+		if (
+			(status === 'hired' || status === 'rejected') &&
+			application.resumeUrl
+		) {
 			try {
-				const filePath = path.join(__dirname, '..', 'uploads', 'applications', path.basename(application.resumeUrl));
+				const filePath = path.join(
+					__dirname,
+					'..',
+					'uploads',
+					'applications',
+					path.basename(application.resumeUrl)
+				);
 				if (fs.existsSync(filePath)) {
 					fs.unlinkSync(filePath);
 					application.fileDeleted = true;
@@ -277,14 +301,13 @@ router.put('/:id/status', [auth, requireCompanyOrAdmin], async (req, res) => {
 		res.json({
 			success: true,
 			message: `Status lamaran berhasil diubah menjadi ${status}`,
-			data: { application }
+			data: { application },
 		});
-
 	} catch (error) {
 		console.error('Update application status error:', error);
 		res.status(500).json({
 			success: false,
-			message: 'Terjadi kesalahan pada server'
+			message: 'Terjadi kesalahan pada server',
 		});
 	}
 });
@@ -301,28 +324,35 @@ router.delete('/:id', auth, async (req, res) => {
 		if (!application) {
 			return res.status(404).json({
 				success: false,
-				message: 'Lamaran tidak ditemukan'
+				message: 'Lamaran tidak ditemukan',
 			});
 		}
 
 		// Check permissions
-		const canDelete = (
-			(req.user.role === 'talent' && application.talentId.toString() === req.user._id.toString()) ||
-			(req.user.role === 'company' && application.companyId.toString() === req.user._id.toString()) ||
-			req.user.role === 'admin'
-		);
+		const canDelete =
+			(req.user.role === 'talent' &&
+				application.talentId.toString() === req.user._id.toString()) ||
+			(req.user.role === 'company' &&
+				application.companyId.toString() === req.user._id.toString()) ||
+			req.user.role === 'admin';
 
 		if (!canDelete) {
 			return res.status(403).json({
 				success: false,
-				message: 'Akses ditolak'
+				message: 'Akses ditolak',
 			});
 		}
 
 		// Delete CV file if exists
 		if (application.resumeUrl) {
 			try {
-				const filePath = path.join(__dirname, '..', 'uploads', 'applications', path.basename(application.resumeUrl));
+				const filePath = path.join(
+					__dirname,
+					'..',
+					'uploads',
+					'applications',
+					path.basename(application.resumeUrl)
+				);
 				if (fs.existsSync(filePath)) {
 					fs.unlinkSync(filePath);
 					console.log(`✅ CV file deleted for application ${applicationId}`);
@@ -337,14 +367,13 @@ router.delete('/:id', auth, async (req, res) => {
 
 		res.json({
 			success: true,
-			message: 'Lamaran berhasil dihapus'
+			message: 'Lamaran berhasil dihapus',
 		});
-
 	} catch (error) {
 		console.error('Delete application error:', error);
 		res.status(500).json({
 			success: false,
-			message: 'Terjadi kesalahan pada server'
+			message: 'Terjadi kesalahan pada server',
 		});
 	}
 });

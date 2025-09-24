@@ -2,7 +2,7 @@ import 'job.dart';
 import 'user.dart';
 
 // Extension for dynamic to handle type conversions
-extension DynamicExtension on dynamic {
+extension TypeConversionExtension on dynamic {
   bool? toBool() {
     var value = this;
     if (value == null) return null;
@@ -25,28 +25,25 @@ extension DynamicExtension on dynamic {
   }
 }
 
-// Extension specifically for Map
-extension MapToBoolExtension on Map? {
-  bool? toBool() {
-    final value = this;
-    if (value == null) return null;
-    if (value is bool) return value;
-    if (value is String) {
-      if (value.toLowerCase() == 'true') return true;
-      if (value.toLowerCase() == 'false') return false;
-    }
-    if (value is num) return (value != 0);
-    return null;
+// Helper function for Map toBool conversion
+bool? mapToBool(dynamic value) {
+  if (value == null) return null;
+  if (value is bool) return value;
+  if (value is String) {
+    if (value.toLowerCase() == 'true') return true;
+    if (value.toLowerCase() == 'false') return false;
   }
+  if (value is num) return value != 0;
+  return null;
+}
 
-  int? toInt() {
-    final value = this;
-    if (value == null) return null;
-    if (value is int) return value;
-    if (value is double) return value.toInt();
-    if (value is String) return int.tryParse(value);
-    return null;
-  }
+// Helper function for Map toInt conversion
+int? mapToInt(dynamic value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is double) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
 }
 
 class Application {
@@ -135,19 +132,27 @@ class Application {
       user: json['user'] is Map ? User.fromJson(json['user']) : null,
       resumeUrl: json['resumeUrl']?.toString(),
       resumeFileName: json['resumeFileName']?.toString(),
-      resumeFileSize: json['resumeFileSize']?.toInt(),
+      resumeFileSize: mapToInt(json['resumeFileSize']),
       resumeFileType: json['resumeFileType']?.toString(),
-      jobTitle: json['jobTitle']?.toString() ?? json['job']?['title']?.toString(),
-      companyName: json['companyName']?.toString() ?? json['job']?['company']?.toString(),
+      jobTitle:
+          json['jobTitle']?.toString() ?? json['job']?['title']?.toString(),
+      companyName: json['companyName']?.toString() ??
+          json['job']?['company']?.toString(),
       applicantName: json['applicantName']?.toString() ??
           (json['user']?['firstName']?.toString() ?? '') +
               ' ' +
               (json['user']?['lastName']?.toString() ?? ''),
-      applicantEmail: json['applicantEmail']?.toString() ?? json['user']?['email']?.toString(),
-      jobDescription: json['jobDescription']?.toString() ?? json['job']?['description']?.toString(),
-      statusHistory: json['statusHistory'] is List ? List<Map<String, dynamic>>.from(json['statusHistory']) : null,
-      fileDeleted: (json['fileDeleted'] as Map?)?.toBool(),
-      fileDeletedAt: json['fileDeletedAt'] != null ? DateTime.parse(json['fileDeletedAt']) : null,
+      applicantEmail: json['applicantEmail']?.toString() ??
+          json['user']?['email']?.toString(),
+      jobDescription: json['jobDescription']?.toString() ??
+          json['job']?['description']?.toString(),
+      statusHistory: json['statusHistory'] is List
+          ? List<Map<String, dynamic>>.from(json['statusHistory'])
+          : null,
+      fileDeleted: mapToBool(json['fileDeleted']),
+      fileDeletedAt: json['fileDeletedAt'] != null
+          ? DateTime.parse(json['fileDeletedAt'])
+          : null,
     );
   }
 
