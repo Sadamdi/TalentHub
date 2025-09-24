@@ -490,6 +490,14 @@ router.put(
 				});
 			}
 
+			// Validate ObjectId format
+			if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+				return res.status(400).json({
+					success: false,
+					message: 'Invalid application ID format',
+				});
+			}
+
 			const { status, notes } = req.body;
 			const application = await Application.findById(req.params.id);
 
@@ -544,11 +552,64 @@ router.put(
 	}
 );
 
+// @route   GET /api/applications/me
+// @desc    Get current user's applications
+// @access  Private (Talent only)
+router.get('/me', [auth], async (req, res) => {
+	try {
+		const talent = await Talent.findOne({ userId: req.user._id });
+		if (!talent) {
+			return res.json({
+				success: true,
+				data: { applications: [] },
+			});
+		}
+
+		const applications = await Application.find({ talentId: talent._id })
+			.populate({
+				path: 'jobId',
+				select: 'title description location salary',
+				populate: {
+					path: 'companyId',
+					select: 'companyName logo',
+				},
+			})
+			.sort({ createdAt: -1 });
+
+		const formattedApplications = applications.map((app) => ({
+			...app.toObject(),
+			jobTitle: app.jobId?.title || 'Job Title',
+			companyName: app.jobId?.companyId?.companyName || 'Company Name',
+			applicantName: req.user.firstName + ' ' + req.user.lastName,
+			applicantEmail: req.user.email,
+		}));
+
+		res.json({
+			success: true,
+			data: { applications: formattedApplications },
+		});
+	} catch (error) {
+		console.error('Get my applications error:', error);
+		res.status(500).json({
+			success: false,
+			message: 'Terjadi kesalahan pada server',
+		});
+	}
+});
+
 // @route   GET /api/applications/:id
 // @desc    Get single application details
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
 	try {
+		// Validate ObjectId format
+		if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+			return res.status(400).json({
+				success: false,
+				message: 'Invalid application ID format',
+			});
+		}
+
 		const application = await Application.findById(req.params.id).populate([
 			{
 				path: 'talentId',
@@ -587,6 +648,14 @@ router.get('/:id', auth, async (req, res) => {
 // @access  Private
 router.get('/:id/cv', auth, async (req, res) => {
 	try {
+		// Validate ObjectId format
+		if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+			return res.status(400).json({
+				success: false,
+				message: 'Invalid application ID format',
+			});
+		}
+
 		const application = await Application.findById(req.params.id);
 		if (!application) {
 			return res.status(404).json({
