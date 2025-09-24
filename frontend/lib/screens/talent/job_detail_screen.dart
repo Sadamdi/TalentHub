@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/job_provider.dart';
+
 import '../../providers/application_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/job_provider.dart';
 import '../../utils/app_colors.dart';
 
 class JobDetailScreen extends StatefulWidget {
@@ -19,12 +20,25 @@ class JobDetailScreen extends StatefulWidget {
 
 class _JobDetailScreenState extends State<JobDetailScreen> {
   bool _isApplying = false;
+  bool _hasApplied = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       Provider.of<JobProvider>(context, listen: false).getJob(widget.jobId);
+
+      // Check if user has already applied for this job
+      final applicationProvider =
+          Provider.of<ApplicationProvider>(context, listen: false);
+      await applicationProvider.getApplications();
+
+      if (applicationProvider.applications
+          .any((app) => app.jobId == widget.jobId)) {
+        setState(() {
+          _hasApplied = true;
+        });
+      }
     });
   }
 
@@ -35,24 +49,30 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       _isApplying = true;
     });
 
-    final applicationProvider = Provider.of<ApplicationProvider>(context, listen: false);
+    final applicationProvider =
+        Provider.of<ApplicationProvider>(context, listen: false);
 
-    final success = await applicationProvider.applyForJob(
+    final result = await applicationProvider.applyForJob(
       jobId: widget.jobId,
+      fullName: 'Test User', // TODO: Get from user profile
+      email: 'test@example.com', // TODO: Get from user profile
+      phone: '+6281234567890', // TODO: Get from user profile
       coverLetter: 'Saya tertarik dengan posisi ini dan ingin melamar.',
     );
 
-    if (success && mounted) {
+    if (result['success'] == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Lamaran berhasil dikirim!'),
+        SnackBar(
+          content: Text(result['message'] ?? 'Lamaran berhasil dikirim!'),
           backgroundColor: AppColors.success,
         ),
       );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(applicationProvider.error ?? 'Gagal mengirim lamaran'),
+          content: Text(result['message'] ??
+              applicationProvider.error ??
+              'Gagal mengirim lamaran'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -60,6 +80,9 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
     setState(() {
       _isApplying = false;
+      if (result['success'] == true) {
+        _hasApplied = true;
+      }
     });
   }
 
@@ -288,15 +311,19 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                                   ),
                                   child: job.company?.logo != null
                                       ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                           child: Image.network(
                                             job.company!.logo!,
                                             fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) {
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
                                               return Container(
                                                 decoration: BoxDecoration(
-                                                  color: AppColors.primary.withOpacity(0.1),
-                                                  borderRadius: BorderRadius.circular(12),
+                                                  color: AppColors.primary
+                                                      .withOpacity(0.1),
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
                                                 ),
                                                 child: const Icon(
                                                   Icons.business,
@@ -309,8 +336,10 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                                         )
                                       : Container(
                                           decoration: BoxDecoration(
-                                            color: AppColors.primary.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(12),
+                                            color: AppColors.primary
+                                                .withOpacity(0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
                                           ),
                                           child: const Icon(
                                             Icons.business,
@@ -322,7 +351,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         job.title,
@@ -336,7 +366,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
-                                        job.company?.companyName ?? 'Perusahaan',
+                                        job.company?.companyName ??
+                                            'Perusahaan',
                                         style: const TextStyle(
                                           color: AppColors.textSecondary,
                                           fontSize: 14,
@@ -500,9 +531,11 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: ElevatedButton(
-                      onPressed: _isApplying ? null : _applyForJob,
+                      onPressed:
+                          _isApplying || _hasApplied ? null : _applyForJob,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
+                        backgroundColor:
+                            _hasApplied ? AppColors.success : AppColors.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -514,12 +547,13 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
-                          : const Text(
-                              'Apply Now',
-                              style: TextStyle(
+                          : Text(
+                              _hasApplied ? 'Applied' : 'Apply Now',
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 18,
                                 fontFamily: 'Poppins',

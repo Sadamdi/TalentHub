@@ -20,36 +20,6 @@ router.post('/upload', [auth, requireRole(['talent'])], async (req, res) => {
 
 		const uploadedFile = req.files[0]; // Get first uploaded file
 
-		// Validate file size (10MB limit)
-		if (uploadedFile.size > 10 * 1024 * 1024) {
-			return res.status(400).json({
-				success: false,
-				message: 'File size too large. Maximum size is 10MB',
-			});
-		}
-
-		// Validate file type
-		const allowedTypes = [
-			'.pdf',
-			'.doc',
-			'.docx',
-			'.txt',
-			'.rtf',
-			'.odt',
-			'.jpg',
-			'.jpeg',
-			'.png',
-			'.gif',
-			'.wpd',
-		];
-
-		const ext = path.extname(uploadedFile.originalname).toLowerCase();
-		if (!allowedTypes.includes(ext)) {
-			return res.status(400).json({
-				success: false,
-				message: 'File type not supported',
-			});
-		}
 
 		const fileInfo = {
 			fileName: uploadedFile.filename,

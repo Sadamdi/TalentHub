@@ -222,6 +222,56 @@ class ApiService {
   }
 
   // Apply with CV upload (multipart) - try common endpoint patterns
+  Future<Response> uploadFile(File file) async {
+    try {
+      final formData = FormData.fromMap({
+        'cv': await MultipartFile.fromFile(
+          file.path,
+          filename: file.path.split(Platform.pathSeparator).last,
+        ),
+      });
+
+      print('ApiService: Uploading file to /file/upload');
+      return await _dio.post('/file/upload', data: formData);
+    } catch (e) {
+      print('ApiService: File upload error: $e');
+      rethrow;
+    }
+  }
+
+  Future<Response> updateApplicationStatus({
+    required String applicationId,
+    required String status,
+    String? notes,
+    String? feedback,
+  }) async {
+    try {
+      print(
+          'ApiService: Updating application status: $applicationId to $status');
+      return await _dio.put(
+        '/applications/$applicationId/status',
+        data: {
+          'status': status,
+          'notes': notes,
+          'feedback': feedback,
+        },
+      );
+    } catch (e) {
+      print('ApiService: Update application status error: $e');
+      rethrow;
+    }
+  }
+
+  Future<Response> deleteApplication(String applicationId) async {
+    try {
+      print('ApiService: Deleting application: $applicationId');
+      return await _dio.delete('/applications/$applicationId');
+    } catch (e) {
+      print('ApiService: Delete application error: $e');
+      rethrow;
+    }
+  }
+
   Future<Response> applyForJobWithFile({
     required Map<String, dynamic> data,
     File? cvFile,
@@ -268,11 +318,6 @@ class ApiService {
       }
       rethrow;
     }
-  }
-
-  Future<Response> updateApplicationStatus(
-      String applicationId, Map<String, dynamic> data) async {
-    return await _dio.put('/applications/$applicationId/status', data: data);
   }
 
   // Company endpoints

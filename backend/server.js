@@ -2,6 +2,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 // Load environment variables
 dotenv.config({ path: './config.env' });
@@ -15,52 +18,58 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Configure multer for global file uploads
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const fs = require('fs');
-    const path = require('path');
-    const uploadDir = path.join(__dirname, 'uploads', 'applications');
+	destination: function (req, file, cb) {
+		const uploadDir = path.join(__dirname, 'uploads', 'applications');
 
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+		// Create directory if it doesn't exist
+		if (!fs.existsSync(uploadDir)) {
+			fs.mkdirSync(uploadDir, { recursive: true });
+		}
 
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    // Generate unique filename with timestamp
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    const basename = path.basename(file.originalname, ext);
+		cb(null, uploadDir);
+	},
+	filename: function (req, file, cb) {
+		// Generate unique filename with timestamp
+		const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+		const ext = path.extname(file.originalname);
+		const basename = path.basename(file.originalname, ext);
 
-    cb(null, `${basename}-${uniqueSuffix}${ext}`);
-  }
+		cb(null, `${basename}-${uniqueSuffix}${ext}`);
+	},
 });
 
 const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-  },
-  fileFilter: function (req, file, cb) {
-    // Allow all file types for CV
-    const allowedTypes = [
-      // Documents
-      '.pdf', '.doc', '.docx', '.txt', '.rtf', '.odt',
-      // Images
-      '.jpg', '.jpeg', '.png', '.gif',
-      // Others
-      '.wpd'
-    ];
+	storage: storage,
+	limits: {
+		fileSize: 10 * 1024 * 1024, // 10MB limit
+	},
+	fileFilter: function (req, file, cb) {
+		// Allow all file types for CV
+		const allowedTypes = [
+			// Documents
+			'.pdf',
+			'.doc',
+			'.docx',
+			'.txt',
+			'.rtf',
+			'.odt',
+			// Images
+			'.jpg',
+			'.jpeg',
+			'.png',
+			'.gif',
+			// Others
+			'.wpd',
+		];
 
-    const ext = path.extname(file.originalname).toLowerCase();
+		const ext = path.extname(file.originalname).toLowerCase();
 
-    if (allowedTypes.includes(ext)) {
-      cb(null, true);
-    } else {
-      cb(new Error('File type not supported'), false);
-    }
-  }
+		if (allowedTypes.includes(ext)) {
+			cb(null, true);
+		} else {
+			cb(new Error('File type not supported'), false);
+		}
+	},
 });
 
 // Global multer middleware for all routes

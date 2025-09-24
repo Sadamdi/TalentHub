@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 
 import '../models/application.dart';
 import '../services/api_service.dart';
@@ -120,21 +121,54 @@ class ApplicationProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> applyForJob({
+  Future<Map<String, dynamic>> applyForJob({
     required String jobId,
+    required String fullName,
+    required String email,
+    required String phone,
     required String coverLetter,
+    String? experienceYears,
+    List<String>? skills,
+    String? resumeUrl,
+    File? cvFile,
   }) async {
     _setLoading(true);
     _clearError();
 
-    // Debug: print jobId to check if it's valid
+    // Debug: print all data
     print('ApplicationProvider: Applying for jobId: $jobId');
+    print('ApplicationProvider: Full name: $fullName');
+    print('ApplicationProvider: Email: $email');
+    print('ApplicationProvider: Phone: $phone');
     print('ApplicationProvider: Cover letter: $coverLetter');
+    print('ApplicationProvider: Experience: $experienceYears');
+    print('ApplicationProvider: Skills: $skills');
+    print('ApplicationProvider: CV File: ${cvFile?.path ?? 'No file'}');
 
     try {
+      // Upload file first if provided
+      String? uploadedFileName;
+      if (cvFile != null) {
+        print('ApplicationProvider: Uploading CV file...');
+        final uploadResponse = await _apiService.uploadFile(cvFile);
+        if (uploadResponse.statusCode == 200) {
+          uploadedFileName = uploadResponse.data['data']['fileName'];
+          print('ApplicationProvider: File uploaded: $uploadedFileName');
+        } else {
+          _setError('Failed to upload CV file');
+          return {'success': false, 'message': 'Failed to upload CV file'};
+        }
+      }
+
       final response = await _apiService.applyForJob({
         'jobId': jobId,
+        'fullName': fullName,
+        'email': email,
+        'phone': phone,
         'coverLetter': coverLetter,
+        'experienceYears': experienceYears ?? '',
+        'skills': skills ?? [],
+        'resumeUrl': uploadedFileName,
       });
 
       print('ApplicationProvider: Response status: ${response.statusCode}');
@@ -142,15 +176,81 @@ class ApplicationProvider extends ChangeNotifier {
 
       if (response.statusCode == 201) {
         await getApplications(); // Refresh applications
-        return true;
+        return {'success': true, 'message': 'Application submitted successfully'};
       } else {
         _setError(response.data['message'] ?? 'Gagal mengirim lamaran');
-        return false;
+        return {'success': false, 'message': response.data['message'] ?? 'Gagal mengirim lamaran'};
       }
     } catch (e) {
       print('ApplicationProvider: Error: $e');
       _handleError(e);
-      return false;
+      return {'success': false, 'message': 'Error submitting application: $e'};
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<Map<String, dynamic>> updateApplicationStatus({
+    required String applicationId,
+    required String status,
+    String? notes,
+    String? feedback,
+  }) async {
+    _setLoading(true);
+    _clearError();
+
+    print('ApplicationProvider: Updating status for application: $applicationId to $status');
+
+    try {
+      final response = await _apiService.updateApplicationStatus(
+        applicationId: applicationId,
+        status: status,
+        notes: notes,
+        feedback: feedback,
+      );
+
+      print('ApplicationProvider: Status update response: ${response.statusCode}');
+      print('ApplicationProvider: Response data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        await getApplications(); // Refresh applications
+        return {'success': true, 'message': 'Status updated successfully'};
+      } else {
+        _setError(response.data['message'] ?? 'Failed to update status');
+        return {'success': false, 'message': response.data['message'] ?? 'Failed to update status'};
+      }
+    } catch (e) {
+      print('ApplicationProvider: Error updating status: $e');
+      _handleError(e);
+      return {'success': false, 'message': 'Error updating status: $e'};
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<Map<String, dynamic>> deleteApplication(String applicationId) async {
+    _setLoading(true);
+    _clearError();
+
+    print('ApplicationProvider: Deleting application: $applicationId');
+
+    try {
+      final response = await _apiService.deleteApplication(applicationId);
+
+      print('ApplicationProvider: Delete response: ${response.statusCode}');
+      print('ApplicationProvider: Response data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        await getApplications(); // Refresh applications
+        return {'success': true, 'message': 'Application deleted successfully'};
+      } else {
+        _setError(response.data['message'] ?? 'Failed to delete application');
+        return {'success': false, 'message': response.data['message'] ?? 'Failed to delete application'};
+      }
+    } catch (e) {
+      print('ApplicationProvider: Error deleting application: $e');
+      _handleError(e);
+      return {'success': false, 'message': 'Error deleting application: $e'};
     } finally {
       _setLoading(false);
     }
@@ -164,44 +264,16 @@ class ApplicationProvider extends ChangeNotifier {
       // TODO: Add cancel application endpoint in API service
       // For now, we'll update status to 'cancelled'
       final response =
-          await _apiService.updateApplicationStatus(applicationId, {
-        'status': 'cancelled',
-      });
+          await _apiService.updateApplicationStatus(
+        applicationId: applicationId,
+        status: 'cancelled',
+      );
 
       if (response.statusCode == 200) {
         await getApplications(); // Refresh applications
         return true;
       } else {
         _setError(response.data['message'] ?? 'Gagal membatalkan lamaran');
-        return false;
-      }
-    } catch (e) {
-      _handleError(e);
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  Future<bool> updateApplicationStatus({
-    required String applicationId,
-    required String status,
-  }) async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      final response =
-          await _apiService.updateApplicationStatus(applicationId, {
-        'status': status,
-      });
-
-      if (response.statusCode == 200) {
-        await getCompanyApplications(); // Refresh company applications
-        return true;
-      } else {
-        _setError(
-            response.data['message'] ?? 'Gagal memperbarui status lamaran');
         return false;
       }
     } catch (e) {
