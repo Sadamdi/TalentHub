@@ -107,8 +107,21 @@ router.post(
 			// Update talent profile with application data
 			if (fullName) talent.name = fullName;
 			if (phone) talent.phone = phone;
-			if (experienceYears) talent.experience = experienceYears;
-			if (skills) talent.skills = skills;
+
+			// Update experience only if it's a valid enum value
+			if (experienceYears && experienceYears.trim() !== '') {
+				const validExperiences = [
+					'fresh_graduate',
+					'1-2_years',
+					'3-5_years',
+					'5+_years',
+				];
+				if (validExperiences.includes(experienceYears)) {
+					talent.experience = experienceYears;
+				}
+			}
+
+			if (skills && Array.isArray(skills)) talent.skills = skills;
 
 			// Note: Email update should be done through user profile update, not talent profile
 			// For now, we'll skip email update to avoid userId reference issues
