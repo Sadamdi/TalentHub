@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:path_provider/path_provider.dart';
 
 class ApiService {
   late final Dio _dio;
@@ -314,10 +315,56 @@ class ApiService {
     }
   }
 
-  Future<Response> downloadCv(String applicationId) async {
+  Future<String> downloadCv(String applicationId) async {
     try {
       print('ApiService: Downloading CV for application: $applicationId');
-      return await _dio.get('/applications/$applicationId/cv');
+
+      final response = await _dio.get(
+        '/applications/$applicationId/cv',
+        options: Options(
+          responseType: ResponseType.bytes,
+          followRedirects: false,
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        // Get filename from Content-Disposition header or use default
+        String filename = 'CV-$applicationId.pdf';
+        String? contentDisposition =
+            response.headers['content-disposition']?.first;
+        if (contentDisposition != null) {
+          final filenameMatch =
+              RegExp(r'filename="(.+)"').firstMatch(contentDisposition);
+          if (filenameMatch != null) {
+            filename = filenameMatch.group(1) ?? filename;
+          }
+        }
+
+        // For mobile platforms, save to downloads directory
+        Directory? directory;
+        if (Platform.isAndroid) {
+          directory = Directory('/storage/emulated/0/Download');
+          if (!await directory.exists()) {
+            directory = await getExternalStorageDirectory();
+          }
+        } else if (Platform.isIOS) {
+          directory = await getApplicationDocumentsDirectory();
+        } else {
+          directory = await getDownloadsDirectory();
+        }
+
+        if (directory != null) {
+          final file = File('${directory.path}/$filename');
+          await file.writeAsBytes(response.data);
+
+          print('ApiService: CV saved to: ${file.path}');
+          return file.path;
+        } else {
+          throw Exception('Could not find downloads directory');
+        }
+      } else {
+        throw Exception('Failed to download CV: ${response.statusCode}');
+      }
     } catch (e) {
       print('ApiService: Download CV error: $e');
       rethrow;

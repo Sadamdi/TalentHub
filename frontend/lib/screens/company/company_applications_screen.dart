@@ -378,13 +378,14 @@ class _CompanyApplicationsScreenState extends State<CompanyApplicationsScreen> {
         ),
       );
 
-      // Download CV
-      await apiService.downloadCv(applicationId);
+      // Download CV and get file path
+      final filePath = await apiService.downloadCv(applicationId);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('CV downloaded successfully'),
+        SnackBar(
+          content: Text('CV downloaded successfully\nSaved to: $filePath'),
           backgroundColor: AppColors.success,
+          duration: const Duration(seconds: 4),
         ),
       );
     } catch (e) {

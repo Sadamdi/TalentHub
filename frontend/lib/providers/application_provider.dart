@@ -121,10 +121,18 @@ class ApplicationProvider extends ChangeNotifier {
     try {
       final response = await _apiService.getApplication(applicationId);
       if (response.statusCode == 200) {
-        _selectedApplication =
-            Application.fromJson(response.data['data']['application']);
+        // Backend returns data: application directly, not data: {application: application}
+        final applicationData = response.data['data'];
+        if (applicationData != null) {
+          _selectedApplication = Application.fromJson(applicationData);
+        } else {
+          _setError('Data aplikasi tidak valid');
+        }
+      } else {
+        _setError('Gagal mengambil detail aplikasi');
       }
     } catch (e) {
+      print('ApplicationProvider: Error getting application: $e');
       _handleError(e);
     } finally {
       _setLoading(false);

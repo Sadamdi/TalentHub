@@ -298,6 +298,29 @@ class AuthProvider extends ChangeNotifier {
       final lastName =
           nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
 
+      // STEP 1: Check if user already exists by trying a regular login
+      print('🔍 Checking if Google user already exists...');
+      try {
+        final checkResponse = await _apiService.login({
+          'email': googleUser.email,
+          'password': 'unused', // This will fail but tells us if user exists
+        });
+
+        // This shouldn't succeed, but if it does, user exists with different auth
+        print(
+            '⚠️ User exists with password auth, proceeding to Google auth...');
+      } catch (loginError) {
+        if (loginError is DioException &&
+            loginError.response?.statusCode == 401) {
+          // User exists but wrong password (expected for Google users)
+          print('✅ Existing user found, proceeding with Google Sign In...');
+        } else if (loginError is DioException &&
+            loginError.response?.statusCode == 404) {
+          // User doesn't exist, will create new account
+          print('🆕 New user detected, will create account...');
+        }
+      }
+
       final requestData = {
         'email': googleUser.email,
         'firstName': firstName,
@@ -305,6 +328,7 @@ class AuthProvider extends ChangeNotifier {
         'googleId': googleUser.id,
         'accessToken': googleAuth.accessToken,
         'idToken': googleAuth.idToken,
+        'role': 'talent', // Default new users to talent
       };
 
       print('📡 Sending Google auth data to server: ${requestData['email']}');
@@ -318,17 +342,27 @@ class AuthProvider extends ChangeNotifier {
         await _apiService.setToken(token);
         await _getCurrentUser();
 
-        print('✅ Google Sign In successful, checking profile completeness...');
+        print('✅ Google Sign In successful, checking if user is new...');
 
-        // Check if user profile is complete
-        final isProfileComplete = await _isProfileComplete();
-        if (!isProfileComplete) {
-          print('⚠️ Profile incomplete, redirecting to completion');
+        // Check if this is a new user account
+        final isNewUser = response.statusCode == 201;
+
+        if (isNewUser) {
+          print(
+              '🆕 New Google user created, redirecting to profile completion');
           return 'profile_incomplete';
-        }
+        } else {
+          // Existing user, check profile completeness
+          final isProfileComplete = await _isProfileComplete();
+          if (!isProfileComplete) {
+            print(
+                '⚠️ Existing user but profile incomplete, redirecting to completion');
+            return 'profile_incomplete';
+          }
 
-        print('✅ Profile complete, sign in successful');
-        return 'success';
+          print('✅ Existing user with complete profile, sign in successful');
+          return 'success';
+        }
       } else {
         print('❌ Server error: ${response.data}');
         _setError(response.data['message'] ?? 'Google Sign In gagal');
