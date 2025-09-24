@@ -343,7 +343,8 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
                     children: [
                       OutlinedButton(
                         onPressed: () async {
-                          final jobProvider = Provider.of<JobProvider>(context, listen: false);
+                          final jobProvider =
+                              Provider.of<JobProvider>(context, listen: false);
                           final debug = await jobProvider.debugCompanyData();
                           if (debug != null) {
                             showDialog(
@@ -368,12 +369,14 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
                       const SizedBox(width: 12),
                       ElevatedButton(
                         onPressed: () async {
-                          final jobProvider = Provider.of<JobProvider>(context, listen: false);
+                          final jobProvider =
+                              Provider.of<JobProvider>(context, listen: false);
                           final success = await jobProvider.fixCompanyData();
                           if (success) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Data fixed! Jobs should appear now.'),
+                                content:
+                                    Text('Data fixed! Jobs should appear now.'),
                                 backgroundColor: AppColors.success,
                               ),
                             );

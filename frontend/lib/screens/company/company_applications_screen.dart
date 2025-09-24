@@ -78,17 +78,17 @@ class _CompanyApplicationsScreenState extends State<CompanyApplicationsScreen> {
           }
 
           if (applicationProvider.companyApplications.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.people_outline,
                     size: 64,
                     color: AppColors.textLight,
                   ),
-                  SizedBox(height: 16),
-                  Text(
+                  const SizedBox(height: 16),
+                  const Text(
                     'No applications yet',
                     style: TextStyle(
                       fontSize: 18,
@@ -96,8 +96,8 @@ class _CompanyApplicationsScreenState extends State<CompanyApplicationsScreen> {
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  SizedBox(height: 8),
-                  Text(
+                  const SizedBox(height: 8),
+                  const Text(
                     'Applications will appear here when someone applies',
                     style: TextStyle(
                       fontSize: 14,
@@ -108,12 +108,14 @@ class _CompanyApplicationsScreenState extends State<CompanyApplicationsScreen> {
                   const SizedBox(height: 16),
                   OutlinedButton(
                     onPressed: () async {
-                      final jobProvider = Provider.of<JobProvider>(context, listen: false);
+                      final jobProvider =
+                          Provider.of<JobProvider>(context, listen: false);
                       final success = await jobProvider.fixCompanyData();
                       if (success) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Data fixed! Applications should appear now.'),
+                            content: Text(
+                                'Data fixed! Applications should appear now.'),
                             backgroundColor: AppColors.success,
                           ),
                         );
@@ -252,7 +254,8 @@ class _CompanyApplicationsScreenState extends State<CompanyApplicationsScreen> {
                               onPressed: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
-                                    builder: (context) => ApplicationDetailScreen(
+                                    builder: (context) =>
+                                        ApplicationDetailScreen(
                                       applicationId: application.id,
                                     ),
                                   ),
@@ -342,8 +345,8 @@ class _CompanyApplicationsScreenState extends State<CompanyApplicationsScreen> {
   void _downloadCv(String applicationId) async {
     try {
       final apiService = ApiService();
-      final response = await apiService.downloadCv(applicationId);
-      
+      await apiService.downloadCv(applicationId);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('CV download started'),

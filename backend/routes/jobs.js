@@ -189,14 +189,20 @@ router.post(
 				// For regular company, find or create profile
 				company = await Company.findOne({ userId: req.user._id });
 				if (!company) {
-					console.log('Creating company profile for job creation, user:', req.user._id);
+					console.log(
+						'Creating company profile for job creation, user:',
+						req.user._id
+					);
 					company = new Company({
 						userId: req.user._id,
 						companyName: `${req.user.firstName} ${req.user.lastName}`,
 						description: 'Deskripsi perusahaan belum diisi',
 					});
 					await company.save();
-					console.log('✅ Company profile created for job creation:', company._id);
+					console.log(
+						'✅ Company profile created for job creation:',
+						company._id
+					);
 				}
 			}
 
@@ -240,7 +246,10 @@ router.put('/:id', [auth, requireCompanyOrAdmin], async (req, res) => {
 			// Regular company can only update their own jobs
 			let company = await Company.findOne({ userId: req.user._id });
 			if (!company) {
-				console.log('Creating company profile for job update, user:', req.user._id);
+				console.log(
+					'Creating company profile for job update, user:',
+					req.user._id
+				);
 				company = new Company({
 					userId: req.user._id,
 					companyName: `${req.user.firstName} ${req.user.lastName}`,
@@ -316,7 +325,10 @@ router.delete('/:id', [auth, requireCompanyOrAdmin], async (req, res) => {
 			// Regular company can only delete their own jobs
 			let company = await Company.findOne({ userId: req.user._id });
 			if (!company) {
-				console.log('Creating company profile for job delete, user:', req.user._id);
+				console.log(
+					'Creating company profile for job delete, user:',
+					req.user._id
+				);
 				company = new Company({
 					userId: req.user._id,
 					companyName: `${req.user.firstName} ${req.user.lastName}`,
