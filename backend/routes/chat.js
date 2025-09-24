@@ -21,8 +21,10 @@ router.get('/conversations', auth, async (req, res) => {
 				.populate('applicationId', 'jobId')
 				.sort({ lastMessageTime: -1 });
 		} else if (role === 'company') {
-			chats = await Chat.find({ companyId: userId })
+			// Company can see all chats (not just their own)
+			chats = await Chat.find({})
 				.populate('talentId', 'firstName lastName email')
+				.populate('companyId', 'firstName lastName email')
 				.populate('applicationId', 'jobId')
 				.sort({ lastMessageTime: -1 });
 		}
@@ -81,8 +83,7 @@ router.get('/:applicationId', auth, async (req, res) => {
 		const hasAccess =
 			(role === 'talent' &&
 				application.talentId.userId.toString() === userId.toString()) ||
-			(role === 'company' &&
-				application.companyId.userId.toString() === userId.toString());
+			role === 'company'; // Company can access any chat now
 
 		if (!hasAccess) {
 			return res.status(403).json({
@@ -165,8 +166,7 @@ router.post(
 			const hasAccess =
 				(role === 'talent' &&
 					application.talentId.userId.toString() === userId.toString()) ||
-				(role === 'company' &&
-					application.companyId.userId.toString() === userId.toString());
+				role === 'company'; // Company can access any chat now
 
 			if (!hasAccess) {
 				return res.status(403).json({

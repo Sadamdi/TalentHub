@@ -243,7 +243,7 @@ router.put('/:id', [auth, requireCompanyOrAdmin], async (req, res) => {
 			// Admin can update any job
 			job = await Job.findById(req.params.id);
 		} else {
-			// Regular company can only update their own jobs
+			// Company can also update any job (same as admin)
 			let company = await Company.findOne({ userId: req.user._id });
 			if (!company) {
 				console.log(
@@ -258,10 +258,8 @@ router.put('/:id', [auth, requireCompanyOrAdmin], async (req, res) => {
 				await company.save();
 				console.log('✅ Company profile created for job update:', company._id);
 			}
-			job = await Job.findOne({
-				_id: req.params.id,
-				companyId: company._id,
-			});
+			// Company can update any job now
+			job = await Job.findById(req.params.id);
 		}
 
 		if (!job) {
@@ -322,7 +320,7 @@ router.delete('/:id', [auth, requireCompanyOrAdmin], async (req, res) => {
 			// Admin can delete any job
 			job = await Job.findById(req.params.id);
 		} else {
-			// Regular company can only delete their own jobs
+			// Company can also delete any job (same as admin)
 			let company = await Company.findOne({ userId: req.user._id });
 			if (!company) {
 				console.log(
@@ -337,10 +335,8 @@ router.delete('/:id', [auth, requireCompanyOrAdmin], async (req, res) => {
 				await company.save();
 				console.log('✅ Company profile created for job delete:', company._id);
 			}
-			job = await Job.findOne({
-				_id: req.params.id,
-				companyId: company._id,
-			});
+			// Company can delete any job now
+			job = await Job.findById(req.params.id);
 		}
 
 		if (!job) {
@@ -407,7 +403,7 @@ router.get('/company-jobs', [auth, requireCompanyOrAdmin], async (req, res) => {
 				},
 			});
 		} else {
-			// Company gets only their jobs
+			// Company gets ALL jobs (same as admin)
 			let company = await Company.findOne({ userId: req.user._id });
 			if (!company) {
 				console.log('❌ Company profile not found for user:', req.user._id);
@@ -433,20 +429,26 @@ router.get('/company-jobs', [auth, requireCompanyOrAdmin], async (req, res) => {
 				console.log('✅ Company profile auto-created:', company._id);
 			}
 
+			console.log('Company accessing all jobs (same as admin)');
 			const page = parseInt(req.query.page) || 1;
-			const limit = parseInt(req.query.limit) || 10;
+			const limit = parseInt(req.query.limit) || 50;
 			const skip = (page - 1) * limit;
 
-			jobs = await Job.find({ companyId: company._id })
+			jobs = await Job.find({})
 				.populate('companyId', 'companyName logo')
 				.sort({ createdAt: -1 })
 				.skip(skip)
 				.limit(limit);
 
-			total = await Job.countDocuments({ companyId: company._id });
+			total = await Job.countDocuments();
+
+			console.log(
+				`Company found ${jobs.length} jobs out of ${total} total jobs`
+			);
 
 			res.json({
 				success: true,
+				message: 'Company accessing all jobs',
 				data: {
 					jobs,
 					pagination: {

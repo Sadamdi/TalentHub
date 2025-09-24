@@ -262,16 +262,8 @@ router.put('/:id/status', [auth, requireCompanyOrAdmin], async (req, res) => {
 			});
 		}
 
-		// Check permissions (company can only update their own applications)
-		if (
-			req.user.role === 'company' &&
-			application.companyId.toString() !== req.user._id.toString()
-		) {
-			return res.status(403).json({
-				success: false,
-				message: 'Akses ditolak',
-			});
-		}
+		// Company can update any application now (same as admin)
+		// No permission restriction for companies
 
 		// Update status and add to history
 		const oldStatus = application.status;
@@ -552,18 +544,23 @@ router.get('/company', [auth, requireRole(['company'])], async (req, res) => {
 				phone: req.user.phoneNumber || '+6281234567890',
 			});
 			await company.save();
-			console.log('✅ Company profile auto-created for applications:', company._id);
+			console.log(
+				'✅ Company profile auto-created for applications:',
+				company._id
+			);
 		}
 
 		const page = parseInt(req.query.page) || 1;
 		const limit = parseInt(req.query.limit) || 10;
 		const skip = (page - 1) * limit;
 
-		// Filter by status if provided
-		const filter = { companyId: company._id };
+		// Company can see ALL applications (not just their own)
+		const filter = {};
 		if (req.query.status) {
 			filter.status = req.query.status;
 		}
+
+		console.log('Company accessing all applications (same as admin)');
 
 		const applications = await Application.find(filter)
 			.populate([
@@ -584,9 +581,9 @@ router.get('/company', [auth, requireRole(['company'])], async (req, res) => {
 
 		const total = await Application.countDocuments(filter);
 
-		// Get application statistics
+		// Get application statistics for ALL applications
 		const stats = await Application.aggregate([
-			{ $match: { companyId: company._id } },
+			{ $match: {} }, // No filter - all applications
 			{
 				$group: {
 					_id: '$status',
@@ -594,6 +591,10 @@ router.get('/company', [auth, requireRole(['company'])], async (req, res) => {
 				},
 			},
 		]);
+
+		console.log(
+			`Company found ${applications.length} applications out of ${total} total applications`
+		);
 
 		const statusStats = {
 			pending: 0,
