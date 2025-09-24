@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/application_provider.dart';
+import '../../providers/job_provider.dart';
+import '../../services/api_service.dart';
 import '../../utils/app_colors.dart';
+import '../applications/application_detail_screen.dart';
 
 class CompanyApplicationsScreen extends StatefulWidget {
   const CompanyApplicationsScreen({super.key});
@@ -101,6 +104,24 @@ class _CompanyApplicationsScreenState extends State<CompanyApplicationsScreen> {
                       color: AppColors.textLight,
                     ),
                     textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton(
+                    onPressed: () async {
+                      final jobProvider = Provider.of<JobProvider>(context, listen: false);
+                      final success = await jobProvider.fixCompanyData();
+                      if (success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Data fixed! Applications should appear now.'),
+                            backgroundColor: AppColors.success,
+                          ),
+                        );
+                        // Reload applications
+                        _loadApplications();
+                      }
+                    },
+                    child: const Text('Fix Company Data'),
                   ),
                 ],
               ),
@@ -223,15 +244,36 @@ class _CompanyApplicationsScreenState extends State<CompanyApplicationsScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      // View Details button
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            // TODO: Navigate to application detail screen
-                          },
-                          child: const Text('View Details'),
-                        ),
+                      // Action buttons row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => ApplicationDetailScreen(
+                                      applicationId: application.id,
+                                    ),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.visibility),
+                              label: const Text('View Details'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => _downloadCv(application.id),
+                              icon: const Icon(Icons.download),
+                              label: const Text('Download CV'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -295,5 +337,26 @@ class _CompanyApplicationsScreenState extends State<CompanyApplicationsScreen> {
       applicationId: applicationId,
       status: newStatus,
     );
+  }
+
+  void _downloadCv(String applicationId) async {
+    try {
+      final apiService = ApiService();
+      final response = await apiService.downloadCv(applicationId);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('CV download started'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal download CV: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 }

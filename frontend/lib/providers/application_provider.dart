@@ -422,12 +422,8 @@ class ApplicationProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      // TODO: Add cancel application endpoint in API service
-      // For now, we'll update status to 'cancelled'
-      final response = await _apiService.updateApplicationStatus(
-        applicationId: applicationId,
-        status: 'cancelled',
-      );
+      // Use delete endpoint directly instead of status update
+      final response = await _apiService.deleteApplication(applicationId);
 
       if (response.statusCode == 200) {
         await getApplications(); // Refresh applications

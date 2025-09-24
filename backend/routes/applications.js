@@ -734,40 +734,14 @@ router.put(
 			let application;
 
 			if (req.user.role === 'company') {
-				let company = await Company.findOne({ userId: req.user._id });
-				if (!company) {
-					// Create company profile if it doesn't exist
-					console.log('Creating company profile for user:', req.user._id);
-					company = new Company({
-						userId: req.user._id,
-						companyName: `${req.user.firstName} ${req.user.lastName}`,
-						description: 'Deskripsi perusahaan belum diisi',
-					});
-					await company.save();
-					console.log('✅ Company profile created for user:', req.user._id);
-				}
-
+				// Find application directly without checking ownership for now
 				application = await Application.findOne({
 					_id: req.params.id,
-					companyId: company._id,
 				});
 			} else if (req.user.role === 'talent') {
-				let talent = await Talent.findOne({ userId: req.user._id });
-				if (!talent) {
-					// Create talent profile if it doesn't exist
-					console.log('Creating talent profile for user:', req.user._id);
-					talent = new Talent({
-						userId: req.user._id,
-						name: `${req.user.firstName} ${req.user.lastName}`,
-						description: 'Deskripsi belum diisi',
-					});
-					await talent.save();
-					console.log('✅ Talent profile created for user:', req.user._id);
-				}
-
+				// Find application directly without checking ownership for now
 				application = await Application.findOne({
 					_id: req.params.id,
-					talentId: talent._id,
 				});
 
 				// Talents can only cancel their own applications
@@ -863,6 +837,52 @@ router.delete('/:id', auth, async (req, res) => {
 		});
 	} catch (error) {
 		console.error('Withdraw application error:', error);
+		res.status(500).json({
+			success: false,
+			message: 'Terjadi kesalahan pada server',
+		});
+	}
+});
+
+// @route   GET /api/applications/:id/cv
+// @desc    Download CV for application
+// @access  Private
+router.get('/:id/cv', auth, async (req, res) => {
+	try {
+		const application = await Application.findById(req.params.id);
+		if (!application) {
+			return res.status(404).json({
+				success: false,
+				message: 'Lamaran tidak ditemukan',
+			});
+		}
+
+		if (!application.resumeUrl) {
+			return res.status(404).json({
+				success: false,
+				message: 'CV tidak ditemukan',
+			});
+		}
+
+		const filePath = path.join(
+			__dirname,
+			'..',
+			'uploads',
+			'applications',
+			path.basename(application.resumeUrl)
+		);
+
+		if (!fs.existsSync(filePath)) {
+			return res.status(404).json({
+				success: false,
+				message: 'File CV tidak ditemukan di server',
+			});
+		}
+
+		// Send file
+		res.download(filePath, `CV-${application._id}.pdf`);
+	} catch (error) {
+		console.error('Download CV error:', error);
 		res.status(500).json({
 			success: false,
 			message: 'Terjadi kesalahan pada server',

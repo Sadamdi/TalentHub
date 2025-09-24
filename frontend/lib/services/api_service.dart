@@ -311,6 +311,37 @@ class ApiService {
     }
   }
 
+  Future<Response> downloadCv(String applicationId) async {
+    try {
+      print('ApiService: Downloading CV for application: $applicationId');
+      return await _dio.get('/applications/$applicationId/cv');
+    } catch (e) {
+      print('ApiService: Download CV error: $e');
+      rethrow;
+    }
+  }
+
+  // Debug and fix company data
+  Future<Response> debugCompanyData() async {
+    try {
+      print('ApiService: Debug company data');
+      return await _dio.get('/jobs/debug/company-data');
+    } catch (e) {
+      print('ApiService: Debug company data error: $e');
+      rethrow;
+    }
+  }
+
+  Future<Response> fixCompanyData() async {
+    try {
+      print('ApiService: Fix company data');
+      return await _dio.post('/jobs/debug/fix-company-data');
+    } catch (e) {
+      print('ApiService: Fix company data error: $e');
+      rethrow;
+    }
+  }
+
   Future<Response> applyForJobWithFile({
     required Map<String, dynamic> data,
     File? cvFile,

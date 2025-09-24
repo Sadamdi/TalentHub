@@ -329,6 +329,63 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Data Issues? Try fixing data mapping:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textLight,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      OutlinedButton(
+                        onPressed: () async {
+                          final jobProvider = Provider.of<JobProvider>(context, listen: false);
+                          final debug = await jobProvider.debugCompanyData();
+                          if (debug != null) {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Debug Info'),
+                                content: SingleChildScrollView(
+                                  child: Text(debug.toString()),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('Close'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                        },
+                        child: const Text('Debug'),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: () async {
+                          final jobProvider = Provider.of<JobProvider>(context, listen: false);
+                          final success = await jobProvider.fixCompanyData();
+                          if (success) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Data fixed! Jobs should appear now.'),
+                                backgroundColor: AppColors.success,
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                        ),
+                        child: const Text('Fix Data'),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             );

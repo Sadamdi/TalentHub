@@ -186,13 +186,17 @@ router.post(
 					await company.save();
 				}
 			} else {
-				// For regular company, find existing profile
+				// For regular company, find or create profile
 				company = await Company.findOne({ userId: req.user._id });
 				if (!company) {
-					return res.status(404).json({
-						success: false,
-						message: 'Profil perusahaan tidak ditemukan',
+					console.log('Creating company profile for job creation, user:', req.user._id);
+					company = new Company({
+						userId: req.user._id,
+						companyName: `${req.user.firstName} ${req.user.lastName}`,
+						description: 'Deskripsi perusahaan belum diisi',
 					});
+					await company.save();
+					console.log('✅ Company profile created for job creation:', company._id);
 				}
 			}
 
@@ -234,12 +238,16 @@ router.put('/:id', [auth, requireCompanyOrAdmin], async (req, res) => {
 			job = await Job.findById(req.params.id);
 		} else {
 			// Regular company can only update their own jobs
-			const company = await Company.findOne({ userId: req.user._id });
+			let company = await Company.findOne({ userId: req.user._id });
 			if (!company) {
-				return res.status(404).json({
-					success: false,
-					message: 'Profil perusahaan tidak ditemukan',
+				console.log('Creating company profile for job update, user:', req.user._id);
+				company = new Company({
+					userId: req.user._id,
+					companyName: `${req.user.firstName} ${req.user.lastName}`,
+					description: 'Deskripsi perusahaan belum diisi',
 				});
+				await company.save();
+				console.log('✅ Company profile created for job update:', company._id);
 			}
 			job = await Job.findOne({
 				_id: req.params.id,
@@ -306,12 +314,16 @@ router.delete('/:id', [auth, requireCompanyOrAdmin], async (req, res) => {
 			job = await Job.findById(req.params.id);
 		} else {
 			// Regular company can only delete their own jobs
-			const company = await Company.findOne({ userId: req.user._id });
+			let company = await Company.findOne({ userId: req.user._id });
 			if (!company) {
-				return res.status(404).json({
-					success: false,
-					message: 'Profil perusahaan tidak ditemukan',
+				console.log('Creating company profile for job delete, user:', req.user._id);
+				company = new Company({
+					userId: req.user._id,
+					companyName: `${req.user.firstName} ${req.user.lastName}`,
+					description: 'Deskripsi perusahaan belum diisi',
 				});
+				await company.save();
+				console.log('✅ Company profile created for job delete:', company._id);
 			}
 			job = await Job.findOne({
 				_id: req.params.id,

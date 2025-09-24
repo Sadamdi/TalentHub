@@ -313,4 +313,41 @@ class JobProvider extends ChangeNotifier {
       _setLoading(false);
     }
   }
+
+  // Debug and fix company data
+  Future<Map<String, dynamic>?> debugCompanyData() async {
+    try {
+      final response = await _apiService.debugCompanyData();
+      if (response.statusCode == 200) {
+        return response.data['debug'];
+      }
+      return null;
+    } catch (e) {
+      print('JobProvider: Debug company data error: $e');
+      return null;
+    }
+  }
+
+  Future<bool> fixCompanyData() async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final response = await _apiService.fixCompanyData();
+      if (response.statusCode == 200) {
+        print('JobProvider: Company data fixed successfully');
+        // Refresh company jobs after fixing
+        await getCompanyJobs();
+        return true;
+      } else {
+        _setError(response.data['message'] ?? 'Gagal memperbaiki data perusahaan');
+        return false;
+      }
+    } catch (e) {
+      _handleError(e);
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
 }
