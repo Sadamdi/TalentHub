@@ -160,16 +160,31 @@ class ApplicationProvider extends ChangeNotifier {
         }
       }
 
-      final response = await _apiService.applyForJob({
+      // Build data object, only include non-null values
+      final data = {
         'jobId': jobId,
         'fullName': fullName,
         'email': email,
         'phone': phone,
         'coverLetter': coverLetter,
-        'experienceYears': experienceYears ?? '',
-        'skills': skills ?? [],
-        'resumeUrl': uploadedFileName,
-      });
+      };
+
+      // Only add experienceYears if it's not null or empty
+      if (experienceYears != null && experienceYears.isNotEmpty) {
+        data['experienceYears'] = experienceYears;
+      }
+
+      // Only add skills if it's not null or empty
+      if (skills != null && skills.isNotEmpty) {
+        data['skills'] = skills;
+      }
+
+      // Only add resumeUrl if file was uploaded
+      if (uploadedFileName != null) {
+        data['resumeUrl'] = uploadedFileName;
+      }
+
+      final response = await _apiService.applyForJob(data);
 
       print('ApplicationProvider: Response status: ${response.statusCode}');
       print('ApplicationProvider: Response data: ${response.data}');

@@ -146,8 +146,8 @@ class _ApplyJobScreenState extends State<ApplyJobScreen> {
         email: _emailController.text,
         phone: _phoneController.text,
         coverLetter: _coverLetterController.text,
-        experienceYears: _experienceController.text,
-        skills: skills,
+        experienceYears: _experienceController.text.isNotEmpty ? _experienceController.text : null,
+        skills: skills.isNotEmpty ? skills : null,
         resumeUrl: _cvFileName, // Will be updated with server URL
         cvFile: _cvFile,
       );

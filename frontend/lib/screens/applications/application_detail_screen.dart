@@ -355,14 +355,17 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                   Navigator.of(context).pop();
                   // Show success message after navigation completes
                   WidgetsBinding.instance.addPostFrameCallback((_) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Lamaran berhasil dibatalkan'),
-                        backgroundColor: AppColors.success,
-                      ),
-                    );
+                    // Use the scaffold key to show snackbar safely
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Lamaran berhasil dibatalkan'),
+                          backgroundColor: AppColors.success,
+                        ),
+                      );
+                    }
                   });
-                } else {
+                } else if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content:

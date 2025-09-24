@@ -33,7 +33,7 @@ router.post(
 			.withMessage('Cover letter maksimal 1000 karakter'),
 		body('experienceYears')
 			.optional()
-			.isLength({ max: 50 })
+			.isLength({ min: 0, max: 50 })
 			.withMessage('Tahun pengalaman maksimal 50 karakter'),
 		body('skills')
 			.optional()
