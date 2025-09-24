@@ -4,6 +4,9 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/app_colors.dart';
 import '../profile/edit_company_profile_screen.dart';
+import 'company_applications_screen.dart';
+import 'company_chat_screen.dart';
+import 'company_jobs_screen.dart';
 
 class CompanyProfileScreen extends StatefulWidget {
   const CompanyProfileScreen({super.key});
@@ -162,12 +165,9 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                         title: 'Kelola Lowongan',
                         subtitle: 'Lihat dan edit lowongan kerja',
                         onTap: () {
-                          // Navigate to jobs screen via bottom navigation
-                          // This will be handled by main navigation
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content:
-                                  Text('Use Jobs tab to manage job postings'),
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const CompanyJobsScreen(),
                             ),
                           );
                         },
@@ -178,11 +178,10 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                         title: 'Kelola Lamaran',
                         subtitle: 'Terima/tolak lamaran pelamar',
                         onTap: () {
-                          // Navigate to applications screen via bottom navigation
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  'Use Applications tab to manage applications'),
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const CompanyApplicationsScreen(),
                             ),
                           );
                         },
@@ -202,15 +201,24 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                       ),
                       const Divider(height: 1),
                       _buildMenuItem(
+                        icon: Icons.chat_bubble_outline,
+                        title: 'Chat dengan Pelamar',
+                        subtitle: 'Komunikasi dengan pelamar',
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const CompanyChatScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      const Divider(height: 1),
+                      _buildMenuItem(
                         icon: Icons.settings,
                         title: 'Pengaturan',
                         subtitle: 'Kelola pengaturan akun',
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Settings feature coming soon!'),
-                            ),
-                          );
+                          _showSettingsDialog(context);
                         },
                       ),
                       const Divider(height: 1),
@@ -292,6 +300,56 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _showSettingsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Pengaturan'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.dark_mode),
+              title: const Text('Mode Gelap'),
+              trailing: Switch(
+                value: false, // TODO: Implement theme provider
+                onChanged: (value) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Mode gelap akan segera hadir!'),
+                    ),
+                  );
+                  Navigator.pop(context);
+                },
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.notifications),
+              title: const Text('Notifikasi'),
+              trailing: Switch(
+                value: true,
+                onChanged: (value) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Pengaturan notifikasi akan segera hadir!'),
+                    ),
+                  );
+                  Navigator.pop(context);
+                },
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
     );
   }
 

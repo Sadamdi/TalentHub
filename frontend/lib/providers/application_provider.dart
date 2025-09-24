@@ -381,18 +381,28 @@ class ApplicationProvider extends ChangeNotifier {
   }
 
   Future<void> getChatByApplicationId(String applicationId) async {
+    print(
+        '🔍 ApplicationProvider: Loading chat for applicationId: $applicationId');
     _setLoading(true);
     _clearError();
 
     try {
       final response = await _apiService.getChatByApplicationId(applicationId);
+      print(
+          '📡 ApplicationProvider: Chat API response status: ${response.statusCode}');
+      print('📄 ApplicationProvider: Chat API response data: ${response.data}');
+
       if (response.statusCode == 200) {
-        _setChat(response.data['data']['chat']);
+        final chatData = response.data['data']['chat'];
+        print('💬 ApplicationProvider: Setting chat data: $chatData');
+        _setChat(chatData);
       } else {
+        print(
+            '❌ ApplicationProvider: Failed to load chat, status: ${response.statusCode}');
         _setError('Failed to load chat');
       }
     } catch (e) {
-      print('ApplicationProvider: Error loading chat: $e');
+      print('❌ ApplicationProvider: Error loading chat: $e');
       _setError('Error loading chat: $e');
     } finally {
       _setLoading(false);

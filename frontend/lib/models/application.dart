@@ -137,7 +137,8 @@ class Application {
       jobTitle:
           json['jobTitle']?.toString() ?? json['job']?['title']?.toString(),
       companyName: json['companyName']?.toString() ??
-          json['job']?['company']?.toString(),
+          json['job']?['company']?['companyName']?.toString() ??
+          json['job']?['companyName']?.toString(),
       applicantName: json['applicantName']?.toString() ??
           (json['user']?['firstName']?.toString() ?? '') +
               ' ' +

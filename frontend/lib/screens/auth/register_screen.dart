@@ -564,7 +564,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         ),
                                       )
                                     : const Text(
-                                        'Create Account',
+                                        'Sign Up',
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontFamily: 'Poppins',

@@ -422,7 +422,7 @@ class ApiService {
         };
         try {
           await createCompanyProfile(minimalProfile);
-        } on DioException catch (e2) {
+        } on DioException catch (_) {
           // If POST fails, try PUT as fallback
           await updateCompanyProfile(minimalProfile);
         }

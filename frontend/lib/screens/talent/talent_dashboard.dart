@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/job_provider.dart';
+
 import '../../providers/auth_provider.dart';
+import '../../providers/job_provider.dart';
 import '../../utils/app_colors.dart';
 import '../../widgets/job_card.dart';
 import '../../widgets/search_filter_bar.dart';
-import 'job_search_screen.dart';
 import 'job_detail_screen.dart';
+import 'job_search_screen.dart';
 
 class TalentDashboard extends StatefulWidget {
   const TalentDashboard({super.key});
@@ -17,8 +18,10 @@ class TalentDashboard extends StatefulWidget {
 
 class _TalentDashboardState extends State<TalentDashboard> {
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
   int _currentPage = 1;
   bool _isLoadingMore = false;
+  String _selectedCategory = 'all';
 
   @override
   void initState() {
@@ -30,6 +33,7 @@ class _TalentDashboardState extends State<TalentDashboard> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -38,6 +42,37 @@ class _TalentDashboardState extends State<TalentDashboard> {
     jobProvider.getJobs(
       page: refresh ? 1 : _currentPage,
       refresh: refresh,
+      search: _searchController.text.isNotEmpty ? _searchController.text : null,
+      category: _selectedCategory != 'all' ? _selectedCategory : null,
+    );
+  }
+
+  void _onSearchChanged(String query) {
+    // This will be called by the SearchFilterBar
+    _loadJobs(refresh: true);
+  }
+
+  void _onFilterChanged(String category) {
+    setState(() {
+      _selectedCategory = category.toLowerCase();
+      _currentPage = 1;
+    });
+    _loadJobs(refresh: true);
+  }
+
+  void _showFilterDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Filter Jobs'),
+        content: const Text('Filter options coming soon!'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -205,7 +240,8 @@ class _TalentDashboardState extends State<TalentDashboard> {
                                   TextSpan(
                                     children: [
                                       TextSpan(
-                                        text: 'Good Afternoon, ${authProvider.user?.firstName ?? 'User'}.\n',
+                                        text:
+                                            'Good Afternoon, ${authProvider.user?.firstName ?? 'User'}.\n',
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 20,
@@ -269,10 +305,14 @@ class _TalentDashboardState extends State<TalentDashboard> {
               ),
 
               // Search dan filter bar
-              const SliverToBoxAdapter(
+              SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: SearchFilterBar(),
+                  padding: const EdgeInsets.all(20),
+                  child: SearchFilterBar(
+                    searchController: _searchController,
+                    onSearchChanged: _onSearchChanged,
+                    onFilterPressed: _showFilterDialog,
+                  ),
                 ),
               ),
 
@@ -383,16 +423,28 @@ class _TalentDashboardState extends State<TalentDashboard> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      _buildFilterChip('All', true),
-                      const SizedBox(width: 15),
-                      _buildFilterChip('Writer', false),
-                      const SizedBox(width: 15),
-                      _buildFilterChip('Designer', false),
-                      const SizedBox(width: 15),
-                      _buildFilterChip('Finance', false),
-                    ],
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterChip('All', _selectedCategory == 'all'),
+                        const SizedBox(width: 15),
+                        _buildFilterChip(
+                            'Writer', _selectedCategory == 'writer'),
+                        const SizedBox(width: 15),
+                        _buildFilterChip(
+                            'Designer', _selectedCategory == 'designer'),
+                        const SizedBox(width: 15),
+                        _buildFilterChip(
+                            'Finance', _selectedCategory == 'finance'),
+                        const SizedBox(width: 15),
+                        _buildFilterChip(
+                            'Marketing', _selectedCategory == 'marketing'),
+                        const SizedBox(width: 15),
+                        _buildFilterChip(
+                            'Developer', _selectedCategory == 'developer'),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -443,7 +495,8 @@ class _TalentDashboardState extends State<TalentDashboard> {
                             onTap: () {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (context) => JobDetailScreen(jobId: job.id),
+                                  builder: (context) =>
+                                      JobDetailScreen(jobId: job.id),
                                 ),
                               );
                             },
@@ -459,7 +512,8 @@ class _TalentDashboardState extends State<TalentDashboard> {
                       }
                       return null;
                     },
-                    childCount: jobProvider.jobs.length + (_isLoadingMore ? 1 : 0),
+                    childCount:
+                        jobProvider.jobs.length + (_isLoadingMore ? 1 : 0),
                   ),
                 ),
             ],
@@ -470,30 +524,32 @@ class _TalentDashboardState extends State<TalentDashboard> {
   }
 
   Widget _buildFilterChip(String label, bool isSelected) {
-    return Container(
-      height: 24,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      decoration: BoxDecoration(
-        color: isSelected ? AppColors.primary : Colors.transparent,
-        border: Border.all(
-          color: AppColors.primary,
-          width: 1,
+    return GestureDetector(
+      onTap: () => _onFilterChanged(label == 'All' ? 'all' : label),
+      child: Container(
+        height: 24,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : Colors.transparent,
+          border: Border.all(
+            color: AppColors.primary,
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
         ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Center(
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : AppColors.primary,
-            fontSize: 12,
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w500,
-            height: 1.50,
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : AppColors.primary,
+              fontSize: 12,
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w500,
+              height: 1.50,
+            ),
           ),
         ),
       ),
     );
   }
 }
-

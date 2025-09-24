@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 
 class SearchFilterBar extends StatelessWidget {
+  final TextEditingController? searchController;
   final String? searchQuery;
   final Function(String)? onSearchChanged;
   final VoidCallback? onFilterPressed;
 
   const SearchFilterBar({
     super.key,
+    this.searchController,
     this.searchQuery,
     this.onSearchChanged,
     this.onFilterPressed,
@@ -47,10 +49,36 @@ class SearchFilterBar extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    'search a job here...',
+                  child: TextField(
+                    controller: searchController,
+                    onChanged: onSearchChanged,
+                    onSubmitted: (_) =>
+                        onSearchChanged?.call(searchController?.text ?? ''),
+                    decoration: InputDecoration(
+                      hintText: 'search a job here...',
+                      hintStyle: const TextStyle(
+                        color: AppColors.textLight,
+                        fontSize: 12,
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w400,
+                        height: 1.50,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      suffixIcon: GestureDetector(
+                        onTap: () {
+                          searchController?.clear();
+                          onSearchChanged?.call('');
+                        },
+                        child: const Icon(
+                          Icons.clear,
+                          size: 16,
+                          color: AppColors.textLight,
+                        ),
+                      ),
+                    ),
                     style: const TextStyle(
-                      color: AppColors.textLight,
+                      color: AppColors.textPrimary,
                       fontSize: 12,
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w400,
@@ -83,10 +111,13 @@ class SearchFilterBar extends StatelessWidget {
               ),
             ],
           ),
-          child: const Icon(
-            Icons.filter_list,
-            size: 20,
-            color: AppColors.textLight,
+          child: GestureDetector(
+            onTap: onFilterPressed,
+            child: const Icon(
+              Icons.filter_list,
+              size: 20,
+              color: AppColors.textLight,
+            ),
           ),
         ),
       ],

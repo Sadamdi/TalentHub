@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../utils/app_colors.dart';
+import '../applications/application_tracker_screen.dart';
+import '../chat/chat_screen.dart';
 import 'edit_talent_profile_screen.dart';
 
 class TalentProfileScreen extends StatelessWidget {
@@ -157,15 +159,24 @@ class TalentProfileScreen extends StatelessWidget {
                         icon: Icons.work_outline,
                         title: 'Lamaran Saya',
                         onTap: () {
-                          // Navigate to applications
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const ApplicationTrackerScreen(),
+                            ),
+                          );
                         },
                       ),
                       _buildDivider(),
                       _buildProfileOption(
-                        icon: Icons.favorite_outline,
-                        title: 'Lowongan Favorit',
+                        icon: Icons.chat_bubble_outline,
+                        title: 'Chat',
                         onTap: () {
-                          // Navigate to favorites
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const ChatScreen(),
+                            ),
+                          );
                         },
                       ),
                       _buildDivider(),
@@ -173,7 +184,7 @@ class TalentProfileScreen extends StatelessWidget {
                         icon: Icons.settings_outlined,
                         title: 'Pengaturan',
                         onTap: () {
-                          // Navigate to settings
+                          _showSettingsDialog(context);
                         },
                       ),
                       _buildDivider(),
@@ -181,7 +192,11 @@ class TalentProfileScreen extends StatelessWidget {
                         icon: Icons.help_outline,
                         title: 'Bantuan',
                         onTap: () {
-                          // Navigate to help
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Fitur bantuan akan segera hadir!'),
+                            ),
+                          );
                         },
                       ),
                       _buildDivider(),
@@ -249,6 +264,57 @@ class TalentProfileScreen extends StatelessWidget {
       height: 1,
       margin: const EdgeInsets.symmetric(horizontal: 16),
       color: AppColors.shadowLight,
+    );
+  }
+
+  void _showSettingsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Pengaturan'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.dark_mode),
+              title: const Text('Mode Gelap'),
+              trailing: Switch(
+                value: false, // TODO: Implement theme provider
+                onChanged: (value) {
+                  // TODO: Implement dark mode toggle
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Mode gelap akan segera hadir!'),
+                    ),
+                  );
+                  Navigator.pop(context);
+                },
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.notifications),
+              title: const Text('Notifikasi'),
+              trailing: Switch(
+                value: true,
+                onChanged: (value) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Pengaturan notifikasi akan segera hadir!'),
+                    ),
+                  );
+                  Navigator.pop(context);
+                },
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
     );
   }
 
