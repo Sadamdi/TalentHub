@@ -343,29 +343,44 @@ router.delete('/:id', [auth, requireCompanyOrAdmin], async (req, res) => {
 });
 
 // @route   GET /api/jobs/company-jobs
-// @desc    Get company's jobs (Company or Admin)
+// @desc    Get company's jobs (Company) or all jobs (Admin)
 // @access  Private (Company or Admin)
 router.get('/company-jobs', [auth, requireCompanyOrAdmin], async (req, res) => {
 	try {
-		let companyId;
+		let jobs;
+		let total;
 
 		if (req.user.role === 'admin') {
-			// Admin can get jobs from any company, but we'll get their own if exists
-			const company = await Company.findOne({ userId: req.user._id });
-			if (company) {
-				companyId = company._id;
-				console.log(`Admin accessing company jobs for: ${company.companyName}`);
-			} else {
-				// If admin has no company, get all jobs (admin view)
-				console.log('Admin has no company profile, getting all jobs');
-				return res.json({
-					success: true,
-					message: 'Admin accessing all jobs',
-					data: await getAllJobsForAdmin(req),
-				});
-			}
+			// Admin gets all jobs
+			console.log('Admin accessing all jobs');
+			const page = parseInt(req.query.page) || 1;
+			const limit = parseInt(req.query.limit) || 50;
+			const skip = (page - 1) * limit;
+
+			jobs = await Job.find({})
+				.populate('companyId', 'companyName logo')
+				.sort({ createdAt: -1 })
+				.skip(skip)
+				.limit(limit);
+
+			total = await Job.countDocuments();
+
+			res.json({
+				success: true,
+				message: 'Admin accessing all jobs',
+				data: {
+					jobs,
+					pagination: {
+						currentPage: page,
+						totalPages: Math.ceil(total / limit),
+						totalJobs: total,
+						hasNext: page < Math.ceil(total / limit),
+						hasPrev: page > 1,
+					},
+				},
+			});
 		} else {
-			// Regular company
+			// Regular company gets only their jobs
 			const company = await Company.findOne({ userId: req.user._id });
 			if (!company) {
 				return res.status(404).json({
@@ -373,34 +388,33 @@ router.get('/company-jobs', [auth, requireCompanyOrAdmin], async (req, res) => {
 					message: 'Profil perusahaan tidak ditemukan',
 				});
 			}
-			companyId = company._id;
-		}
 
-		const page = parseInt(req.query.page) || 1;
-		const limit = parseInt(req.query.limit) || 10;
-		const skip = (page - 1) * limit;
+			const page = parseInt(req.query.page) || 1;
+			const limit = parseInt(req.query.limit) || 10;
+			const skip = (page - 1) * limit;
 
-		const jobs = await Job.find({ companyId })
-			.populate('companyId', 'companyName logo')
-			.sort({ createdAt: -1 })
-			.skip(skip)
-			.limit(limit);
+			jobs = await Job.find({ companyId: company._id })
+				.populate('companyId', 'companyName logo')
+				.sort({ createdAt: -1 })
+				.skip(skip)
+				.limit(limit);
 
-		const total = await Job.countDocuments({ companyId });
+			total = await Job.countDocuments({ companyId: company._id });
 
-		res.json({
-			success: true,
-			data: {
-				jobs,
-				pagination: {
-					currentPage: page,
-					totalPages: Math.ceil(total / limit),
-					totalJobs: total,
-					hasNext: page < Math.ceil(total / limit),
-					hasPrev: page > 1,
+			res.json({
+				success: true,
+				data: {
+					jobs,
+					pagination: {
+						currentPage: page,
+						totalPages: Math.ceil(total / limit),
+						totalJobs: total,
+						hasNext: page < Math.ceil(total / limit),
+						hasPrev: page > 1,
+					},
 				},
-			},
-		});
+			});
+		}
 	} catch (error) {
 		console.error('Get company jobs error:', error);
 		res.status(500).json({

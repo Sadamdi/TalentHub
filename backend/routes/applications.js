@@ -1,15 +1,18 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const { auth, requireRole } = require('../middleware/auth');
+const { auth, requireRole, requireCompanyOrAdmin } = require('../middleware/auth');
 const Application = require('../models/Application');
 const Job = require('../models/Job');
 const Talent = require('../models/Talent');
 const Company = require('../models/Company');
+const Chat = require('../models/Chat');
+const fs = require('fs');
+const path = require('path');
 
 const router = express.Router();
 
 // @route   POST /api/applications
-// @desc    Apply for a job (Talent only) - Alternative endpoint
+// @desc    Apply for a job (Talent only) - Complete application with all data
 // @access  Private (Talent only)
 router.post(
 	'/',
@@ -17,10 +20,18 @@ router.post(
 		auth,
 		requireRole(['talent']),
 		body('jobId').notEmpty().withMessage('Job ID diperlukan'),
+		body('fullName').notEmpty().withMessage('Nama lengkap diperlukan'),
+		body('email').isEmail().withMessage('Email tidak valid'),
+		body('phone').notEmpty().withMessage('Nomor telepon diperlukan'),
 		body('coverLetter')
 			.optional()
 			.isLength({ max: 1000 })
 			.withMessage('Cover letter maksimal 1000 karakter'),
+		body('experienceYears')
+			.optional()
+			.isNumeric()
+			.withMessage('Tahun pengalaman harus berupa angka'),
+		body('skills').optional().isArray().withMessage('Skills harus berupa array'),
 	],
 	async (req, res) => {
 		try {
@@ -33,7 +44,16 @@ router.post(
 				});
 			}
 
-			const { jobId, coverLetter, resumeUrl } = req.body;
+			const {
+				jobId,
+				fullName,
+				email,
+				phone,
+				coverLetter,
+				experienceYears,
+				skills,
+				resumeUrl
+			} = req.body;
 
 			// Check if job exists and is active
 			const job = await Job.findOne({ _id: jobId, isActive: true }).populate(
@@ -77,13 +97,34 @@ router.post(
 				});
 			}
 
-			// Create application
+			// Update talent profile with application data
+			if (fullName) talent.name = fullName;
+			if (email) {
+				talent.userId = { ...talent.userId, email };
+			}
+			if (phone) talent.phone = phone;
+			if (experienceYears) talent.experience = experienceYears;
+			if (skills) talent.skills = skills;
+
+			await talent.save();
+
+			// Create application with all data
 			const application = new Application({
 				talentId: talent._id,
 				jobId: jobId,
 				companyId: job.companyId._id,
 				coverLetter: coverLetter || '',
 				resumeUrl: resumeUrl || talent.resumeUrl,
+				// Additional application data
+				applicationData: {
+					fullName,
+					email,
+					phone,
+					experienceYears,
+					skills,
+					appliedAt: new Date(),
+					userAgent: req.get('User-Agent'),
+				},
 			});
 
 			await application.save();
@@ -94,13 +135,39 @@ router.post(
 
 			// Populate application data
 			await application.populate([
-				{ path: 'talentId', select: 'name skills experience' },
+				{
+					path: 'talentId',
+					select: 'name skills experience phone',
+					populate: { path: 'userId', select: 'email' },
+				},
 				{
 					path: 'jobId',
-					select: 'title companyId',
+					select: 'title companyId location salary',
 					populate: { path: 'companyId', select: 'companyName' },
 				},
 			]);
+
+			// Create chat room for this application
+			try {
+				const existingChat = await Chat.findOne({ applicationId: application._id });
+				if (!existingChat) {
+					const chat = new Chat({
+						applicationId: application._id,
+						talentId: application.talentId,
+						companyId: application.companyId,
+						messages: [],
+						lastMessage: '',
+						lastMessageTime: new Date(),
+						talentUnreadCount: 0,
+						companyUnreadCount: 0
+					});
+					await chat.save();
+					console.log('✅ Chat room created for application:', application._id);
+				}
+			} catch (chatError) {
+				console.error('❌ Error creating chat room:', chatError);
+				// Don't fail the application if chat creation fails
+			}
 
 			res.status(201).json({
 				success: true,
@@ -116,6 +183,168 @@ router.post(
 		}
 	}
 );
+
+// @route   PUT /api/applications/:id/status
+// @desc    Update application status (Company or Admin only)
+// @access  Private (Company or Admin)
+router.put('/:id/status', [auth, requireCompanyOrAdmin], async (req, res) => {
+	try {
+		const { status, notes, feedback } = req.body;
+		const applicationId = req.params.id;
+
+		// Validate status
+		const validStatuses = ['pending', 'reviewed', 'interview', 'hired', 'rejected'];
+		if (!validStatuses.includes(status)) {
+			return res.status(400).json({
+				success: false,
+				message: 'Invalid status'
+			});
+		}
+
+		// Find application
+		const application = await Application.findById(applicationId);
+		if (!application) {
+			return res.status(404).json({
+				success: false,
+				message: 'Lamaran tidak ditemukan'
+			});
+		}
+
+		// Check permissions (company can only update their own applications)
+		if (req.user.role === 'company' && application.companyId.toString() !== req.user._id.toString()) {
+			return res.status(403).json({
+				success: false,
+				message: 'Akses ditolak'
+			});
+		}
+
+		// Update status and add to history
+		const oldStatus = application.status;
+		application.status = status;
+		application.feedback = feedback || application.feedback;
+		application.notes = notes || application.notes;
+
+		// Add to status history
+		application.statusHistory.push({
+			status: status,
+			changedAt: new Date(),
+			changedBy: req.user._id,
+			notes: notes || `Status changed from ${oldStatus} to ${status}`
+		});
+
+		// Set appropriate timestamps
+		if (status === 'reviewed') {
+			application.reviewedAt = new Date();
+		} else if (status === 'interview') {
+			application.interviewScheduledAt = new Date();
+		}
+
+		// Delete CV file if status is hired or rejected
+		if ((status === 'hired' || status === 'rejected') && application.resumeUrl) {
+			try {
+				const filePath = path.join(__dirname, '..', 'uploads', 'applications', path.basename(application.resumeUrl));
+				if (fs.existsSync(filePath)) {
+					fs.unlinkSync(filePath);
+					application.fileDeleted = true;
+					application.fileDeletedAt = new Date();
+					application.fileDeletedBy = req.user._id;
+					console.log(`✅ CV file deleted for application ${applicationId}`);
+				}
+			} catch (fileError) {
+				console.error('❌ Error deleting CV file:', fileError);
+			}
+		}
+
+		await application.save();
+
+		// Populate updated application
+		await application.populate([
+			{
+				path: 'talentId',
+				select: 'name skills experience phone',
+				populate: { path: 'userId', select: 'email' },
+			},
+			{
+				path: 'jobId',
+				select: 'title companyId location salary',
+				populate: { path: 'companyId', select: 'companyName' },
+			},
+		]);
+
+		res.json({
+			success: true,
+			message: `Status lamaran berhasil diubah menjadi ${status}`,
+			data: { application }
+		});
+
+	} catch (error) {
+		console.error('Update application status error:', error);
+		res.status(500).json({
+			success: false,
+			message: 'Terjadi kesalahan pada server'
+		});
+	}
+});
+
+// @route   DELETE /api/applications/:id
+// @desc    Delete/cancel application (Talent or Company or Admin)
+// @access  Private
+router.delete('/:id', auth, async (req, res) => {
+	try {
+		const applicationId = req.params.id;
+
+		// Find application
+		const application = await Application.findById(applicationId);
+		if (!application) {
+			return res.status(404).json({
+				success: false,
+				message: 'Lamaran tidak ditemukan'
+			});
+		}
+
+		// Check permissions
+		const canDelete = (
+			(req.user.role === 'talent' && application.talentId.toString() === req.user._id.toString()) ||
+			(req.user.role === 'company' && application.companyId.toString() === req.user._id.toString()) ||
+			req.user.role === 'admin'
+		);
+
+		if (!canDelete) {
+			return res.status(403).json({
+				success: false,
+				message: 'Akses ditolak'
+			});
+		}
+
+		// Delete CV file if exists
+		if (application.resumeUrl) {
+			try {
+				const filePath = path.join(__dirname, '..', 'uploads', 'applications', path.basename(application.resumeUrl));
+				if (fs.existsSync(filePath)) {
+					fs.unlinkSync(filePath);
+					console.log(`✅ CV file deleted for application ${applicationId}`);
+				}
+			} catch (fileError) {
+				console.error('❌ Error deleting CV file:', fileError);
+			}
+		}
+
+		// Delete application
+		await Application.findByIdAndDelete(applicationId);
+
+		res.json({
+			success: true,
+			message: 'Lamaran berhasil dihapus'
+		});
+
+	} catch (error) {
+		console.error('Delete application error:', error);
+		res.status(500).json({
+			success: false,
+			message: 'Terjadi kesalahan pada server'
+		});
+	}
+});
 
 // @route   POST /api/applications/jobs/:jobId/apply
 // @desc    Apply for a job (Talent only)
