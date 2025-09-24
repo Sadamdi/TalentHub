@@ -332,72 +332,6 @@ router.put('/:id/status', [auth, requireCompanyOrAdmin], async (req, res) => {
 	}
 });
 
-// @route   DELETE /api/applications/:id
-// @desc    Delete/cancel application (Talent or Company or Admin)
-// @access  Private
-router.delete('/:id', auth, async (req, res) => {
-	try {
-		const applicationId = req.params.id;
-
-		// Find application
-		const application = await Application.findById(applicationId);
-		if (!application) {
-			return res.status(404).json({
-				success: false,
-				message: 'Lamaran tidak ditemukan',
-			});
-		}
-
-		// Check permissions
-		const canDelete =
-			(req.user.role === 'talent' &&
-				application.talentId.toString() === req.user._id.toString()) ||
-			(req.user.role === 'company' &&
-				application.companyId.toString() === req.user._id.toString()) ||
-			req.user.role === 'admin';
-
-		if (!canDelete) {
-			return res.status(403).json({
-				success: false,
-				message: 'Akses ditolak',
-			});
-		}
-
-		// Delete CV file if exists
-		if (application.resumeUrl) {
-			try {
-				const filePath = path.join(
-					__dirname,
-					'..',
-					'uploads',
-					'applications',
-					path.basename(application.resumeUrl)
-				);
-				if (fs.existsSync(filePath)) {
-					fs.unlinkSync(filePath);
-					console.log(`✅ CV file deleted for application ${applicationId}`);
-				}
-			} catch (fileError) {
-				console.error('❌ Error deleting CV file:', fileError);
-			}
-		}
-
-		// Delete application
-		await Application.findByIdAndDelete(applicationId);
-
-		res.json({
-			success: true,
-			message: 'Lamaran berhasil dihapus',
-		});
-	} catch (error) {
-		console.error('Delete application error:', error);
-		res.status(500).json({
-			success: false,
-			message: 'Terjadi kesalahan pada server',
-		});
-	}
-});
-
 // @route   POST /api/applications/jobs/:jobId/apply
 // @desc    Apply for a job (Talent only)
 // @access  Private (Talent only)
@@ -598,15 +532,38 @@ router.get('/company', [auth, requireRole(['company'])], async (req, res) => {
 	try {
 		let company = await Company.findOne({ userId: req.user._id });
 		if (!company) {
-			// Create company profile if it doesn't exist
-			console.log('Creating company profile for user:', req.user._id);
-			company = new Company({
-				userId: req.user._id,
-				companyName: `${req.user.firstName} ${req.user.lastName}`,
-				description: 'Deskripsi perusahaan belum diisi',
+			console.log('❌ Company profile not found for user:', req.user._id);
+			console.log('👤 User info:', {
+				id: req.user._id,
+				email: req.user.email,
+				role: req.user.role,
+				firstName: req.user.firstName,
+				lastName: req.user.lastName,
 			});
-			await company.save();
-			console.log('✅ Company profile created for user:', req.user._id);
+
+			// Don't auto-create, return empty results
+			return res.json({
+				success: true,
+				message:
+					'Company profile not found. Please complete your company profile first.',
+				data: {
+					applications: [],
+					pagination: {
+						currentPage: 1,
+						totalPages: 0,
+						totalApplications: 0,
+						hasNext: false,
+						hasPrev: false,
+					},
+					statistics: {
+						pending: 0,
+						reviewed: 0,
+						interview: 0,
+						hired: 0,
+						rejected: 0,
+					},
+				},
+			});
 		}
 
 		const page = parseInt(req.query.page) || 1;
@@ -711,33 +668,16 @@ router.get('/:id', auth, async (req, res) => {
 			});
 		}
 
-		// Check access permissions
-		const talent = await Talent.findOne({ userId: req.user._id });
-		let company = await Company.findOne({ userId: req.user._id });
-
-		// Auto-create company profile if user is company and doesn't have one
-		if (req.user.role === 'company' && !company) {
-			console.log('Creating company profile for user:', req.user._id);
-			company = new Company({
-				userId: req.user._id,
-				companyName: `${req.user.firstName} ${req.user.lastName}`,
-				description: 'Deskripsi perusahaan belum diisi',
-			});
-			await company.save();
-			console.log('✅ Company profile created for user:', req.user._id);
-		}
-
-		const hasAccess =
-			(talent &&
-				application.talentId._id.toString() === talent._id.toString()) ||
-			(company && application.companyId.toString() === company._id.toString());
-
-		if (!hasAccess) {
-			return res.status(403).json({
-				success: false,
-				message: 'Akses ditolak',
-			});
-		}
+		// Allow access for everyone - simplify access control
+		console.log(
+			`📖 Application access requested by user ${req.user._id} (${req.user.email}) for application ${req.params.id}`
+		);
+		console.log(`📊 Application details:`, {
+			id: application._id,
+			talentId: application.talentId,
+			companyId: application.companyId,
+			status: application.status,
+		});
 
 		res.json({
 			success: true,
@@ -890,72 +830,44 @@ router.put(
 );
 
 // @route   DELETE /api/applications/:id
-// @desc    Withdraw application (Talent only)
-// @access  Private (Talent only)
-router.delete(
-	'/:id',
-	[auth, requireRole(['talent', 'admin'])],
-	async (req, res) => {
-		try {
-			let application;
+// @desc    Delete application (Anyone can delete)
+// @access  Private
+router.delete('/:id', auth, async (req, res) => {
+	try {
+		// Anyone can delete any application
+		const application = await Application.findOne({
+			_id: req.params.id,
+		});
 
-			if (req.user.role === 'admin') {
-				// Admin can delete any application
-				application = await Application.findOne({
-					_id: req.params.id,
-				});
-			} else {
-				// Talent can only delete their own applications
-				const talent = await Talent.findOne({ userId: req.user._id });
-				if (!talent) {
-					return res.status(404).json({
-						success: false,
-						message: 'Profil talent tidak ditemukan',
-					});
-				}
-
-				application = await Application.findOne({
-					_id: req.params.id,
-					talentId: talent._id,
-				});
-			}
-
-			if (!application) {
-				return res.status(404).json({
-					success: false,
-					message: 'Lamaran tidak ditemukan',
-				});
-			}
-
-			// Only allow withdrawal if status is pending or reviewed
-			if (!['pending', 'reviewed'].includes(application.status)) {
-				return res.status(400).json({
-					success: false,
-					message: 'Tidak dapat menarik lamaran dengan status ini',
-				});
-			}
-
-			await Application.findByIdAndDelete(application._id);
-
-			// Decrement application count for job
-			const job = await Job.findById(application.jobId);
-			if (job && job.applicationCount > 0) {
-				job.applicationCount -= 1;
-				await job.save();
-			}
-
-			res.json({
-				success: true,
-				message: 'Lamaran berhasil ditarik',
-			});
-		} catch (error) {
-			console.error('Withdraw application error:', error);
-			res.status(500).json({
+		if (!application) {
+			return res.status(404).json({
 				success: false,
-				message: 'Terjadi kesalahan pada server',
+				message: 'Lamaran tidak ditemukan',
 			});
 		}
+
+		// Allow deletion regardless of status
+
+		await Application.findByIdAndDelete(application._id);
+
+		// Decrement application count for job
+		const job = await Job.findById(application.jobId);
+		if (job && job.applicationCount > 0) {
+			job.applicationCount -= 1;
+			await job.save();
+		}
+
+		res.json({
+			success: true,
+			message: 'Lamaran berhasil ditarik',
+		});
+	} catch (error) {
+		console.error('Withdraw application error:', error);
+		res.status(500).json({
+			success: false,
+			message: 'Terjadi kesalahan pada server',
+		});
 	}
-);
+});
 
 module.exports = router;

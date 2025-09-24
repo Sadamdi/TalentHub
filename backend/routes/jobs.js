@@ -7,6 +7,7 @@ const {
 } = require('../middleware/auth');
 const Job = require('../models/Job');
 const Company = require('../models/Company');
+const User = require('../models/User');
 const Application = require('../models/Application');
 
 const router = express.Router();
@@ -385,15 +386,31 @@ router.get('/company-jobs', [auth, requireCompanyOrAdmin], async (req, res) => {
 			// Company gets only their jobs
 			let company = await Company.findOne({ userId: req.user._id });
 			if (!company) {
-				// Create company profile if it doesn't exist
-				console.log('Creating company profile for user:', req.user._id);
-				company = new Company({
-					userId: req.user._id,
-					companyName: `${req.user.firstName} ${req.user.lastName}`,
-					description: 'Deskripsi perusahaan belum diisi',
+				console.log('❌ Company profile not found for user:', req.user._id);
+				console.log('👤 User info:', {
+					id: req.user._id,
+					email: req.user.email,
+					role: req.user.role,
+					firstName: req.user.firstName,
+					lastName: req.user.lastName,
 				});
-				await company.save();
-				console.log('✅ Company profile created for user:', req.user._id);
+
+				// Don't auto-create, return empty results and let company create profile properly
+				return res.json({
+					success: true,
+					message:
+						'Company profile not found. Please complete your company profile first.',
+					data: {
+						jobs: [],
+						pagination: {
+							currentPage: 1,
+							totalPages: 0,
+							totalJobs: 0,
+							hasNext: false,
+							hasPrev: false,
+						},
+					},
+				});
 			}
 
 			const page = parseInt(req.query.page) || 1;
@@ -547,5 +564,263 @@ router.get(
 		}
 	}
 );
+
+// @route   GET /api/jobs/debug/company-data
+// @desc    Debug company data and relationships
+// @access  Private (Company only)
+router.get('/debug/company-data', auth, async (req, res) => {
+	try {
+		const userId = req.user._id;
+		const userEmail = req.user.email;
+
+		console.log(`🔍 DEBUG: Looking for data for user ${userId} (${userEmail})`);
+
+		// Find user
+		const user = await User.findById(userId);
+		console.log(
+			'👤 User found:',
+			user
+				? {
+						id: user._id,
+						email: user.email,
+						role: user.role,
+						firstName: user.firstName,
+						lastName: user.lastName,
+				  }
+				: 'NOT FOUND'
+		);
+
+		// Find company profile
+		const company = await Company.findOne({ userId: userId });
+		console.log(
+			'🏢 Company profile:',
+			company
+				? {
+						id: company._id,
+						userId: company.userId,
+						companyName: company.companyName,
+						description: company.description,
+				  }
+				: 'NOT FOUND'
+		);
+
+		// Find all companies in database
+		const allCompanies = await Company.find({});
+		console.log(`📊 Total companies in DB: ${allCompanies.length}`);
+		allCompanies.forEach((comp, index) => {
+			console.log(`Company ${index + 1}:`, {
+				id: comp._id,
+				userId: comp.userId,
+				companyName: comp.companyName,
+			});
+		});
+
+		// Find jobs by this company (if exists)
+		let jobs = [];
+		if (company) {
+			jobs = await Job.find({ companyId: company._id });
+			console.log(`💼 Jobs found for company ${company._id}: ${jobs.length}`);
+		}
+
+		// Find all jobs and see their companyId
+		const allJobs = await Job.find({}).populate(
+			'companyId',
+			'companyName userId'
+		);
+		console.log(`📊 Total jobs in DB: ${allJobs.length}`);
+		allJobs.forEach((job, index) => {
+			console.log(`Job ${index + 1}:`, {
+				id: job._id,
+				title: job.title,
+				companyId: job.companyId ? job.companyId._id : 'NULL',
+				companyName: job.companyId ? job.companyId.companyName : 'NULL',
+				companyUserId: job.companyId ? job.companyId.userId : 'NULL',
+			});
+		});
+
+		// Check if any job belongs to this user through companyId.userId
+		const jobsByUserThroughCompany = await Job.find({}).populate({
+			path: 'companyId',
+			match: { userId: userId },
+		});
+		const validJobsByUser = jobsByUserThroughCompany.filter(
+			(job) => job.companyId
+		);
+		console.log(`🔗 Jobs linked to user ${userId}: ${validJobsByUser.length}`);
+
+		res.json({
+			success: true,
+			debug: {
+				user: user
+					? {
+							id: user._id,
+							email: user.email,
+							role: user.role,
+							firstName: user.firstName,
+							lastName: user.lastName,
+					  }
+					: null,
+				company: company
+					? {
+							id: company._id,
+							userId: company.userId,
+							companyName: company.companyName,
+							description: company.description,
+					  }
+					: null,
+				totalCompanies: allCompanies.length,
+				allCompanies: allCompanies.map((c) => ({
+					id: c._id,
+					userId: c.userId,
+					companyName: c.companyName,
+				})),
+				directJobs: jobs.length,
+				totalJobs: allJobs.length,
+				jobsLinkedToUser: validJobsByUser.length,
+				allJobs: allJobs.map((j) => ({
+					id: j._id,
+					title: j.title,
+					companyId: j.companyId ? j.companyId._id : null,
+					companyName: j.companyId ? j.companyId.companyName : null,
+					companyUserId: j.companyId ? j.companyId.userId : null,
+				})),
+			},
+		});
+	} catch (error) {
+		console.error('Debug error:', error);
+		res.status(500).json({
+			success: false,
+			message: 'Debug error',
+			error: error.message,
+		});
+	}
+});
+
+// @route   POST /api/jobs/debug/fix-company-data
+// @desc    Fix company data mapping for specific user
+// @access  Private (Company only)
+router.post('/debug/fix-company-data', auth, async (req, res) => {
+	try {
+		const userId = req.user._id;
+		const userEmail = req.user.email;
+
+		console.log(`🔧 FIXING: Data for user ${userId} (${userEmail})`);
+
+		// Find or create company profile
+		let company = await Company.findOne({ userId: userId });
+		if (!company) {
+			console.log('🏗️ Creating new company profile...');
+			company = new Company({
+				userId: userId,
+				companyName: `${req.user.firstName} ${req.user.lastName}`,
+				description: 'Deskripsi perusahaan belum diisi',
+			});
+			await company.save();
+			console.log('✅ Company profile created:', company._id);
+		} else {
+			console.log('✅ Company profile found:', company._id);
+		}
+
+		// Find jobs that might belong to this user but linked to different companies
+		const allJobs = await Job.find({}).populate(
+			'companyId',
+			'userId companyName'
+		);
+		const orphanJobs = allJobs.filter(
+			(job) =>
+				job.companyId &&
+				job.companyId.userId &&
+				job.companyId.userId.toString() === userId.toString() &&
+				job.companyId._id.toString() !== company._id.toString()
+		);
+
+		console.log(`🔍 Found ${orphanJobs.length} orphan jobs to reassign`);
+
+		// Reassign orphan jobs to the correct company
+		const fixedJobs = [];
+		for (const job of orphanJobs) {
+			console.log(
+				`🔧 Reassigning job "${job.title}" from company ${job.companyId._id} to ${company._id}`
+			);
+			job.companyId = company._id;
+			await job.save();
+			fixedJobs.push({
+				id: job._id,
+				title: job.title,
+				oldCompanyId: job.companyId._id,
+				newCompanyId: company._id,
+			});
+		}
+
+		// Find applications that need fixing
+		const allApplications = await Application.find({}).populate(
+			'companyId',
+			'userId companyName'
+		);
+		const orphanApplications = allApplications.filter(
+			(app) =>
+				app.companyId &&
+				app.companyId.userId &&
+				app.companyId.userId.toString() === userId.toString() &&
+				app.companyId._id.toString() !== company._id.toString()
+		);
+
+		console.log(
+			`🔍 Found ${orphanApplications.length} orphan applications to reassign`
+		);
+
+		// Reassign orphan applications to the correct company
+		const fixedApplications = [];
+		for (const app of orphanApplications) {
+			console.log(
+				`🔧 Reassigning application ${app._id} from company ${app.companyId._id} to ${company._id}`
+			);
+			app.companyId = company._id;
+			await app.save();
+			fixedApplications.push({
+				id: app._id,
+				oldCompanyId: app.companyId._id,
+				newCompanyId: company._id,
+			});
+		}
+
+		// Get updated counts
+		const finalJobs = await Job.find({ companyId: company._id });
+		const finalApplications = await Application.find({
+			companyId: company._id,
+		});
+
+		res.json({
+			success: true,
+			message: 'Data mapping fixed successfully',
+			result: {
+				userId: userId,
+				userEmail: userEmail,
+				company: {
+					id: company._id,
+					name: company.companyName,
+					userId: company.userId,
+				},
+				fixes: {
+					jobsReassigned: fixedJobs.length,
+					applicationsReassigned: fixedApplications.length,
+					fixedJobs: fixedJobs,
+					fixedApplications: fixedApplications,
+				},
+				finalCounts: {
+					totalJobs: finalJobs.length,
+					totalApplications: finalApplications.length,
+				},
+			},
+		});
+	} catch (error) {
+		console.error('Fix data error:', error);
+		res.status(500).json({
+			success: false,
+			message: 'Fix data error',
+			error: error.message,
+		});
+	}
+});
 
 module.exports = router;
