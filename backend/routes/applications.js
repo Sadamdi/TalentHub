@@ -29,9 +29,12 @@ router.post(
 			.withMessage('Cover letter maksimal 1000 karakter'),
 		body('experienceYears')
 			.optional()
-			.isNumeric()
-			.withMessage('Tahun pengalaman harus berupa angka'),
-		body('skills').optional().isArray().withMessage('Skills harus berupa array'),
+			.isLength({ max: 50 })
+			.withMessage('Tahun pengalaman maksimal 50 karakter'),
+		body('skills')
+			.optional()
+			.isArray({ min: 0, max: 20 })
+			.withMessage('Skills harus berupa array dengan maksimal 20 item'),
 	],
 	async (req, res) => {
 		try {

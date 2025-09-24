@@ -379,7 +379,7 @@ router.get('/company-jobs', [auth, requireCompanyOrAdmin], async (req, res) => {
 					},
 				},
 			});
-		} else {
+		} else if (req.user.role === 'company') {
 			// Regular company gets only their jobs
 			const company = await Company.findOne({ userId: req.user._id });
 			if (!company) {

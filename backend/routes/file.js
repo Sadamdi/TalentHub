@@ -1,106 +1,78 @@
 const express = require('express');
-const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { auth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-	destination: function (req, file, cb) {
-		const uploadDir = path.join(__dirname, '..', 'uploads', 'applications');
-
-		// Create directory if it doesn't exist
-		if (!fs.existsSync(uploadDir)) {
-			fs.mkdirSync(uploadDir, { recursive: true });
+// @route   POST /api/file/upload
+// @desc    Upload file for application (using global multer middleware)
+// @access  Private (Talent only)
+router.post('/upload', [auth, requireRole(['talent'])], async (req, res) => {
+	try {
+		// Check if file was uploaded by global multer middleware
+		if (!req.files || req.files.length === 0) {
+			return res.status(400).json({
+				success: false,
+				message: 'No file uploaded',
+			});
 		}
 
-		cb(null, uploadDir);
-	},
-	filename: function (req, file, cb) {
-		// Generate unique filename with timestamp
-		const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-		const ext = path.extname(file.originalname);
-		const basename = path.basename(file.originalname, ext);
+		const uploadedFile = req.files[0]; // Get first uploaded file
 
-		cb(null, `${basename}-${uniqueSuffix}${ext}`);
-	},
-});
+		// Validate file size (10MB limit)
+		if (uploadedFile.size > 10 * 1024 * 1024) {
+			return res.status(400).json({
+				success: false,
+				message: 'File size too large. Maximum size is 10MB',
+			});
+		}
 
-const upload = multer({
-	storage: storage,
-	limits: {
-		fileSize: 10 * 1024 * 1024, // 10MB limit
-	},
-	fileFilter: function (req, file, cb) {
-		// Allow all file types for CV
+		// Validate file type
 		const allowedTypes = [
-			// Documents
 			'.pdf',
 			'.doc',
 			'.docx',
 			'.txt',
 			'.rtf',
 			'.odt',
-			// Images
 			'.jpg',
 			'.jpeg',
 			'.png',
 			'.gif',
-			// Others
 			'.wpd',
 		];
 
-		const ext = path.extname(file.originalname).toLowerCase();
-
-		if (allowedTypes.includes(ext)) {
-			cb(null, true);
-		} else {
-			cb(new Error('File type not supported'), false);
-		}
-	},
-});
-
-// @route   POST /api/file/upload
-// @desc    Upload file for application
-// @access  Private (Talent only)
-router.post(
-	'/upload',
-	[auth, requireRole(['talent'])],
-	upload.single('cv'),
-	async (req, res) => {
-		try {
-			if (!req.file) {
-				return res.status(400).json({
-					success: false,
-					message: 'No file uploaded',
-				});
-			}
-
-			const fileInfo = {
-				fileName: req.file.filename,
-				originalName: req.file.originalname,
-				size: req.file.size,
-				type: req.file.mimetype,
-				url: `/uploads/applications/${req.file.filename}`,
-				uploadedAt: new Date(),
-			};
-
-			res.json({
-				success: true,
-				message: 'File uploaded successfully',
-				data: fileInfo,
-			});
-		} catch (error) {
-			console.error('File upload error:', error);
-			res.status(500).json({
+		const ext = path.extname(uploadedFile.originalname).toLowerCase();
+		if (!allowedTypes.includes(ext)) {
+			return res.status(400).json({
 				success: false,
-				message: 'File upload failed',
+				message: 'File type not supported',
 			});
 		}
+
+		const fileInfo = {
+			fileName: uploadedFile.filename,
+			originalName: uploadedFile.originalname,
+			size: uploadedFile.size,
+			type: uploadedFile.mimetype,
+			url: `/uploads/applications/${uploadedFile.filename}`,
+			uploadedAt: new Date(),
+		};
+
+		res.json({
+			success: true,
+			message: 'File uploaded successfully',
+			data: fileInfo,
+		});
+	} catch (error) {
+		console.error('File upload error:', error);
+		res.status(500).json({
+			success: false,
+			message: 'File upload failed',
+		});
 	}
-);
+});
 
 // @route   GET /api/file/:filename
 // @desc    Get uploaded file
