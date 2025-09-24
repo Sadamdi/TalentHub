@@ -139,6 +139,31 @@ router.post(
 				);
 			}
 
+			// Helper function to convert experience to enum value
+			const convertExperienceToEnum = (experience) => {
+				if (!experience) return 'fresh_graduate';
+
+				const exp = experience.toLowerCase();
+				if (exp.includes('fresh') || exp.includes('0') || exp === '0 years') {
+					return 'fresh_graduate';
+				} else if (
+					exp.includes('1') ||
+					exp.includes('2') ||
+					exp === '1-2 years'
+				) {
+					return '1-2_years';
+				} else if (
+					exp.includes('3') ||
+					exp.includes('4') ||
+					exp.includes('5') ||
+					exp === '3-5 years'
+				) {
+					return '3-5_years';
+				} else {
+					return '5+_years';
+				}
+			};
+
 			// Get or create talent profile
 			let talent = await Talent.findOne({ userId: req.user._id });
 
@@ -147,8 +172,9 @@ router.post(
 				talent = new Talent({
 					userId: req.user._id,
 					name: fullName,
+					description: 'Talent profile description', // Add required description
 					skills: skills || [],
-					experience: experienceYears || '',
+					experience: convertExperienceToEnum(experienceYears),
 					phone: phone,
 					resumeUrl: resumeUrl,
 				});
@@ -162,7 +188,7 @@ router.post(
 					talent.skills = skills;
 				}
 				if (experienceYears) {
-					talent.experience = experienceYears;
+					talent.experience = convertExperienceToEnum(experienceYears);
 				}
 				if (resumeUrl) {
 					talent.resumeUrl = resumeUrl;
