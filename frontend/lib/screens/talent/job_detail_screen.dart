@@ -23,6 +23,7 @@ class JobDetailScreen extends StatefulWidget {
 class _JobDetailScreenState extends State<JobDetailScreen> {
   bool _isApplying = false;
   bool _hasApplied = false;
+  String? _applicationStatus;
 
   @override
   void initState() {
@@ -35,10 +36,16 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
           Provider.of<ApplicationProvider>(context, listen: false);
       await applicationProvider.getApplications();
 
-      if (applicationProvider.applications
-          .any((app) => app.jobId == widget.jobId)) {
+      final existingApplicationIndex = applicationProvider.applications
+          .indexWhere((app) => app.jobId == widget.jobId);
+      final existingApplication = existingApplicationIndex != -1
+          ? applicationProvider.applications[existingApplicationIndex]
+          : null;
+
+      if (existingApplication != null) {
         setState(() {
           _hasApplied = true;
+          _applicationStatus = existingApplication.status;
         });
       }
     });
@@ -71,14 +78,58 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     final application = applicationProvider.applications
         .firstWhere((app) => app.jobId == widget.jobId);
 
-    if (application != null) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => ChatScreen(
-            applicationId: application.id,
-          ),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ChatScreen(
+          applicationId: application.id,
         ),
-      );
+      ),
+    );
+  }
+
+  bool _canReapply() {
+    if (!_hasApplied) return false;
+
+    // Allow reapply if previous application was rejected or cancelled
+    return _applicationStatus != null &&
+        ['rejected', 'cancelled'].contains(_applicationStatus);
+  }
+
+  String _getApplyButtonText() {
+    if (!_hasApplied) return 'Apply Now';
+
+    switch (_applicationStatus) {
+      case 'pending':
+        return 'Applied';
+      case 'interview':
+        return 'In Review';
+      case 'hired':
+        return 'Hired';
+      case 'rejected':
+        return 'Apply Again';
+      case 'cancelled':
+        return 'Apply Again';
+      default:
+        return 'Applied';
+    }
+  }
+
+  Color _getApplyButtonColor() {
+    if (!_hasApplied) return AppColors.primary;
+
+    switch (_applicationStatus) {
+      case 'pending':
+        return AppColors.warning;
+      case 'interview':
+        return AppColors.info;
+      case 'hired':
+        return AppColors.success;
+      case 'rejected':
+        return AppColors.primary; // Can reapply
+      case 'cancelled':
+        return AppColors.primary; // Can reapply
+      default:
+        return AppColors.success;
     }
   }
 
@@ -92,10 +143,21 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     await applicationProvider.getApplications();
 
     // Check if user has applied for this job
-    if (applicationProvider.applications
-        .any((app) => app.jobId == widget.jobId)) {
+    final existingApplicationIndex = applicationProvider.applications
+        .indexWhere((app) => app.jobId == widget.jobId);
+    final existingApplication = existingApplicationIndex != -1
+        ? applicationProvider.applications[existingApplicationIndex]
+        : null;
+
+    if (existingApplication != null) {
       setState(() {
         _hasApplied = true;
+        _applicationStatus = existingApplication.status;
+      });
+    } else {
+      setState(() {
+        _hasApplied = false;
+        _applicationStatus = null;
       });
     }
 
@@ -530,11 +592,11 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: ElevatedButton(
-                      onPressed:
-                          _isApplying || _hasApplied ? null : _applyForJob,
+                      onPressed: _isApplying || (_hasApplied && !_canReapply())
+                          ? null
+                          : _applyForJob,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            _hasApplied ? AppColors.success : AppColors.primary,
+                        backgroundColor: _getApplyButtonColor(),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -551,7 +613,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                               ),
                             )
                           : Text(
-                              _hasApplied ? 'Applied' : 'Apply Now',
+                              _getApplyButtonText(),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 18,
