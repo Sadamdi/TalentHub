@@ -23,6 +23,19 @@ router.get('/me', auth, async (req, res) => {
 				'userId',
 				'email createdAt'
 			);
+		} else if (req.user.role === 'admin') {
+			// For admin, try company profile first, then talent profile
+			profile = await Company.findOne({ userId: req.user._id }).populate(
+				'userId',
+				'email createdAt'
+			);
+
+			if (!profile) {
+				profile = await Talent.findOne({ userId: req.user._id }).populate(
+					'userId',
+					'email createdAt'
+				);
+			}
 		}
 
 		if (!profile) {

@@ -354,20 +354,14 @@ router.get('/company-jobs', [auth, requireCompanyOrAdmin], async (req, res) => {
 			const company = await Company.findOne({ userId: req.user._id });
 			if (company) {
 				companyId = company._id;
+				console.log(`Admin accessing company jobs for: ${company.companyName}`);
 			} else {
-				// If admin has no company, return empty
+				// If admin has no company, get all jobs (admin view)
+				console.log('Admin has no company profile, getting all jobs');
 				return res.json({
 					success: true,
-					data: {
-						jobs: [],
-						pagination: {
-							currentPage: 1,
-							totalPages: 0,
-							totalJobs: 0,
-							hasNext: false,
-							hasPrev: false,
-						},
-					},
+					message: 'Admin accessing all jobs',
+					data: await getAllJobsForAdmin(req),
 				});
 			}
 		} else {
@@ -415,6 +409,37 @@ router.get('/company-jobs', [auth, requireCompanyOrAdmin], async (req, res) => {
 		});
 	}
 });
+
+// Helper function to get all jobs for admin
+async function getAllJobsForAdmin(req) {
+	try {
+		const page = parseInt(req.query.page) || 1;
+		const limit = parseInt(req.query.limit) || 50;
+		const skip = (page - 1) * limit;
+
+		const jobs = await Job.find({})
+			.populate('companyId', 'companyName logo')
+			.sort({ createdAt: -1 })
+			.skip(skip)
+			.limit(limit);
+
+		const total = await Job.countDocuments();
+
+		return {
+			jobs,
+			pagination: {
+				currentPage: page,
+				totalPages: Math.ceil(total / limit),
+				totalJobs: total,
+				hasNext: page < Math.ceil(total / limit),
+				hasPrev: page > 1,
+			},
+		};
+	} catch (error) {
+		console.error('Get all jobs for admin error:', error);
+		throw error;
+	}
+}
 
 // @route   GET /api/jobs/recommendations
 // @desc    Get job recommendations for talent

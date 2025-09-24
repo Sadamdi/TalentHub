@@ -8,6 +8,115 @@ const Company = require('../models/Company');
 
 const router = express.Router();
 
+// @route   POST /api/applications
+// @desc    Apply for a job (Talent only) - Alternative endpoint
+// @access  Private (Talent only)
+router.post(
+	'/',
+	[
+		auth,
+		requireRole(['talent']),
+		body('jobId').notEmpty().withMessage('Job ID diperlukan'),
+		body('coverLetter')
+			.optional()
+			.isLength({ max: 1000 })
+			.withMessage('Cover letter maksimal 1000 karakter'),
+	],
+	async (req, res) => {
+		try {
+			const errors = validationResult(req);
+			if (!errors.isEmpty()) {
+				return res.status(400).json({
+					success: false,
+					message: 'Data tidak valid',
+					errors: errors.array(),
+				});
+			}
+
+			const { jobId, coverLetter, resumeUrl } = req.body;
+
+			// Check if job exists and is active
+			const job = await Job.findOne({ _id: jobId, isActive: true }).populate(
+				'companyId'
+			);
+
+			if (!job) {
+				return res.status(404).json({
+					success: false,
+					message: 'Lowongan pekerjaan tidak ditemukan atau sudah tidak aktif',
+				});
+			}
+
+			// Check if application deadline has passed
+			if (job.applicationDeadline && new Date() > job.applicationDeadline) {
+				return res.status(400).json({
+					success: false,
+					message: 'Batas waktu lamaran sudah lewat',
+				});
+			}
+
+			// Get talent profile
+			const talent = await Talent.findOne({ userId: req.user._id });
+			if (!talent) {
+				return res.status(404).json({
+					success: false,
+					message: 'Profil talent tidak ditemukan',
+				});
+			}
+
+			// Check if already applied
+			const existingApplication = await Application.findOne({
+				talentId: talent._id,
+				jobId: jobId,
+			});
+
+			if (existingApplication) {
+				return res.status(400).json({
+					success: false,
+					message: 'Anda sudah melamar pekerjaan ini',
+				});
+			}
+
+			// Create application
+			const application = new Application({
+				talentId: talent._id,
+				jobId: jobId,
+				companyId: job.companyId._id,
+				coverLetter: coverLetter || '',
+				resumeUrl: resumeUrl || talent.resumeUrl,
+			});
+
+			await application.save();
+
+			// Increment application count for job
+			job.applicationCount += 1;
+			await job.save();
+
+			// Populate application data
+			await application.populate([
+				{ path: 'talentId', select: 'name skills experience' },
+				{
+					path: 'jobId',
+					select: 'title companyId',
+					populate: { path: 'companyId', select: 'companyName' },
+				},
+			]);
+
+			res.status(201).json({
+				success: true,
+				message: 'Lamaran berhasil dikirim',
+				data: { application },
+			});
+		} catch (error) {
+			console.error('Apply job error:', error);
+			res.status(500).json({
+				success: false,
+				message: 'Terjadi kesalahan pada server',
+			});
+		}
+	}
+);
+
 // @route   POST /api/applications/jobs/:jobId/apply
 // @desc    Apply for a job (Talent only)
 // @access  Private (Talent only)
