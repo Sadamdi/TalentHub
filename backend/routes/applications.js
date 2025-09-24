@@ -596,12 +596,17 @@ router.get('/me', [auth, requireRole(['talent'])], async (req, res) => {
 // @access  Private (Company only)
 router.get('/company', [auth, requireRole(['company'])], async (req, res) => {
 	try {
-		const company = await Company.findOne({ userId: req.user._id });
+		let company = await Company.findOne({ userId: req.user._id });
 		if (!company) {
-			return res.status(404).json({
-				success: false,
-				message: 'Profil perusahaan tidak ditemukan',
+			// Create company profile if it doesn't exist
+			console.log('Creating company profile for user:', req.user._id);
+			company = new Company({
+				userId: req.user._id,
+				companyName: `${req.user.firstName} ${req.user.lastName}`,
+				description: 'Deskripsi perusahaan belum diisi',
 			});
+			await company.save();
+			console.log('✅ Company profile created for user:', req.user._id);
 		}
 
 		const page = parseInt(req.query.page) || 1;
@@ -708,7 +713,19 @@ router.get('/:id', auth, async (req, res) => {
 
 		// Check access permissions
 		const talent = await Talent.findOne({ userId: req.user._id });
-		const company = await Company.findOne({ userId: req.user._id });
+		let company = await Company.findOne({ userId: req.user._id });
+
+		// Auto-create company profile if user is company and doesn't have one
+		if (req.user.role === 'company' && !company) {
+			console.log('Creating company profile for user:', req.user._id);
+			company = new Company({
+				userId: req.user._id,
+				companyName: `${req.user.firstName} ${req.user.lastName}`,
+				description: 'Deskripsi perusahaan belum diisi',
+			});
+			await company.save();
+			console.log('✅ Company profile created for user:', req.user._id);
+		}
 
 		const hasAccess =
 			(talent &&
@@ -777,12 +794,17 @@ router.put(
 			let application;
 
 			if (req.user.role === 'company') {
-				const company = await Company.findOne({ userId: req.user._id });
+				let company = await Company.findOne({ userId: req.user._id });
 				if (!company) {
-					return res.status(404).json({
-						success: false,
-						message: 'Profil perusahaan tidak ditemukan',
+					// Create company profile if it doesn't exist
+					console.log('Creating company profile for user:', req.user._id);
+					company = new Company({
+						userId: req.user._id,
+						companyName: `${req.user.firstName} ${req.user.lastName}`,
+						description: 'Deskripsi perusahaan belum diisi',
 					});
+					await company.save();
+					console.log('✅ Company profile created for user:', req.user._id);
 				}
 
 				application = await Application.findOne({
@@ -790,12 +812,17 @@ router.put(
 					companyId: company._id,
 				});
 			} else if (req.user.role === 'talent') {
-				const talent = await Talent.findOne({ userId: req.user._id });
+				let talent = await Talent.findOne({ userId: req.user._id });
 				if (!talent) {
-					return res.status(404).json({
-						success: false,
-						message: 'Profil talent tidak ditemukan',
+					// Create talent profile if it doesn't exist
+					console.log('Creating talent profile for user:', req.user._id);
+					talent = new Talent({
+						userId: req.user._id,
+						name: `${req.user.firstName} ${req.user.lastName}`,
+						description: 'Deskripsi belum diisi',
 					});
+					await talent.save();
+					console.log('✅ Talent profile created for user:', req.user._id);
 				}
 
 				application = await Application.findOne({

@@ -383,12 +383,17 @@ router.get('/company-jobs', [auth, requireCompanyOrAdmin], async (req, res) => {
 			});
 		} else {
 			// Company gets only their jobs
-			const company = await Company.findOne({ userId: req.user._id });
+			let company = await Company.findOne({ userId: req.user._id });
 			if (!company) {
-				return res.status(404).json({
-					success: false,
-					message: 'Profil perusahaan tidak ditemukan',
+				// Create company profile if it doesn't exist
+				console.log('Creating company profile for user:', req.user._id);
+				company = new Company({
+					userId: req.user._id,
+					companyName: `${req.user.firstName} ${req.user.lastName}`,
+					description: 'Deskripsi perusahaan belum diisi',
 				});
+				await company.save();
+				console.log('✅ Company profile created for user:', req.user._id);
 			}
 
 			const page = parseInt(req.query.page) || 1;

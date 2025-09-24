@@ -249,13 +249,13 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
       ),
       body: Consumer<JobProvider>(
         builder: (context, jobProvider, child) {
-          if (jobProvider.isLoading && jobProvider.jobs.isEmpty) {
+          if (jobProvider.isLoading && jobProvider.companyJobs.isEmpty) {
             return const Center(
               child: CircularProgressIndicator(),
             );
           }
 
-          if (jobProvider.error != null && jobProvider.jobs.isEmpty) {
+          if (jobProvider.error != null && jobProvider.companyJobs.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -284,7 +284,7 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
             );
           }
 
-          if (jobProvider.jobs.isEmpty) {
+          if (jobProvider.companyJobs.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -336,9 +336,9 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: jobProvider.jobs.length,
+            itemCount: jobProvider.companyJobs.length,
             itemBuilder: (context, index) {
-              final job = jobProvider.jobs[index];
+              final job = jobProvider.companyJobs[index];
               return Card(
                 margin: const EdgeInsets.only(bottom: 16),
                 child: Padding(
