@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 import 'dart:io';
+
+import 'package:flutter/material.dart';
 
 import '../models/application.dart';
 import '../services/api_service.dart';
@@ -161,7 +162,7 @@ class ApplicationProvider extends ChangeNotifier {
       }
 
       // Build data object, only include non-null values
-      final data = {
+      final Map<String, dynamic> data = {
         'jobId': jobId,
         'fullName': fullName,
         'email': email,
@@ -191,10 +192,16 @@ class ApplicationProvider extends ChangeNotifier {
 
       if (response.statusCode == 201) {
         await getApplications(); // Refresh applications
-        return {'success': true, 'message': 'Application submitted successfully'};
+        return {
+          'success': true,
+          'message': 'Application submitted successfully'
+        };
       } else {
         _setError(response.data['message'] ?? 'Gagal mengirim lamaran');
-        return {'success': false, 'message': response.data['message'] ?? 'Gagal mengirim lamaran'};
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Gagal mengirim lamaran'
+        };
       }
     } catch (e) {
       print('ApplicationProvider: Error: $e');
@@ -214,7 +221,8 @@ class ApplicationProvider extends ChangeNotifier {
     _setLoading(true);
     _clearError();
 
-    print('ApplicationProvider: Updating status for application: $applicationId to $status');
+    print(
+        'ApplicationProvider: Updating status for application: $applicationId to $status');
 
     try {
       final response = await _apiService.updateApplicationStatus(
@@ -224,7 +232,8 @@ class ApplicationProvider extends ChangeNotifier {
         feedback: feedback,
       );
 
-      print('ApplicationProvider: Status update response: ${response.statusCode}');
+      print(
+          'ApplicationProvider: Status update response: ${response.statusCode}');
       print('ApplicationProvider: Response data: ${response.data}');
 
       if (response.statusCode == 200) {
@@ -232,7 +241,10 @@ class ApplicationProvider extends ChangeNotifier {
         return {'success': true, 'message': 'Status updated successfully'};
       } else {
         _setError(response.data['message'] ?? 'Failed to update status');
-        return {'success': false, 'message': response.data['message'] ?? 'Failed to update status'};
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Failed to update status'
+        };
       }
     } catch (e) {
       print('ApplicationProvider: Error updating status: $e');
@@ -260,7 +272,10 @@ class ApplicationProvider extends ChangeNotifier {
         return {'success': true, 'message': 'Application deleted successfully'};
       } else {
         _setError(response.data['message'] ?? 'Failed to delete application');
-        return {'success': false, 'message': response.data['message'] ?? 'Failed to delete application'};
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Failed to delete application'
+        };
       }
     } catch (e) {
       print('ApplicationProvider: Error deleting application: $e');
@@ -278,8 +293,7 @@ class ApplicationProvider extends ChangeNotifier {
     try {
       // TODO: Add cancel application endpoint in API service
       // For now, we'll update status to 'cancelled'
-      final response =
-          await _apiService.updateApplicationStatus(
+      final response = await _apiService.updateApplicationStatus(
         applicationId: applicationId,
         status: 'cancelled',
       );
