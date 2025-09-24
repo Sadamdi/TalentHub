@@ -261,51 +261,86 @@ class AuthProvider extends ChangeNotifier {
     _clearError();
 
     try {
+      print('🔄 Starting Google Sign In...');
+
       final GoogleSignIn googleSignIn = GoogleSignIn(
         scopes: ['email', 'profile'],
       );
 
+      // First, sign out any existing user to ensure clean state
+      await googleSignIn.signOut();
+
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
       if (googleUser == null) {
+        print('❌ Google Sign In cancelled by user');
         _setError('Google Sign In dibatalkan');
         return null;
       }
 
+      print('✅ Google user signed in: ${googleUser.email}');
+
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
-      final response = await _apiService.googleSignIn({
+      if (googleAuth.accessToken == null || googleAuth.idToken == null) {
+        print('❌ Google authentication tokens are null');
+        _setError('Gagal mendapatkan token Google');
+        return null;
+      }
+
+      print('✅ Google authentication tokens obtained');
+
+      // Split display name properly
+      final displayName = googleUser.displayName ?? '';
+      final nameParts = displayName.split(' ');
+      final firstName = nameParts.isNotEmpty ? nameParts.first : '';
+      final lastName =
+          nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+
+      final requestData = {
         'email': googleUser.email,
-        'firstName': googleUser.displayName?.split(' ').first ?? '',
-        'lastName':
-            googleUser.displayName?.split(' ').sublist(1).join(' ') ?? '',
+        'firstName': firstName,
+        'lastName': lastName,
         'googleId': googleUser.id,
         'accessToken': googleAuth.accessToken,
         'idToken': googleAuth.idToken,
-      });
+      };
+
+      print('📡 Sending Google auth data to server: ${requestData['email']}');
+
+      final response = await _apiService.googleSignIn(requestData);
+
+      print('📡 Server response status: ${response.statusCode}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final token = response.data['data']['token'];
         await _apiService.setToken(token);
         await _getCurrentUser();
 
+        print('✅ Google Sign In successful, checking profile completeness...');
+
         // Check if user profile is complete
         final isProfileComplete = await _isProfileComplete();
         if (!isProfileComplete) {
-          // Return special status to indicate profile needs completion
+          print('⚠️ Profile incomplete, redirecting to completion');
           return 'profile_incomplete';
         }
 
+        print('✅ Profile complete, sign in successful');
         return 'success';
       } else {
+        print('❌ Server error: ${response.data}');
         _setError(response.data['message'] ?? 'Google Sign In gagal');
         return null;
       }
     } catch (e) {
+      print('❌ Google Sign In exception: $e');
+
       if (e is DioException) {
         if (e.response != null) {
           final errorData = e.response!.data;
+          print('❌ Server error response: $errorData');
           if (errorData is Map<String, dynamic>) {
             _setError(errorData['message'] ?? 'Google Sign In gagal');
           } else {

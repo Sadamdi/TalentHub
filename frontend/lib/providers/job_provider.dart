@@ -170,13 +170,23 @@ class JobProvider extends ChangeNotifier {
     _clearError();
 
     try {
+      print('📡 JobProvider: Calling getCompanyJobs API...');
       final response = await _apiService.getCompanyJobs();
+      print('📡 JobProvider: API Response status: ${response.statusCode}');
+      print('📡 JobProvider: API Response data: ${response.data}');
+
       if (response.statusCode == 200) {
         _companyJobs = (response.data['data']['jobs'] as List<dynamic>)
             .map((job) => Job.fromJson(job))
             .toList();
+        print('✅ JobProvider: Loaded ${_companyJobs.length} company jobs');
+      } else {
+        print('❌ JobProvider: Unexpected status code: ${response.statusCode}');
+        _setError(
+            'Failed to load jobs: ${response.data['message'] ?? 'Unknown error'}');
       }
     } catch (e) {
+      print('❌ JobProvider: Exception loading company jobs: $e');
       _handleError(e);
     } finally {
       _setLoading(false);
@@ -340,7 +350,8 @@ class JobProvider extends ChangeNotifier {
         await getCompanyJobs();
         return true;
       } else {
-        _setError(response.data['message'] ?? 'Gagal memperbaiki data perusahaan');
+        _setError(
+            response.data['message'] ?? 'Gagal memperbaiki data perusahaan');
         return false;
       }
     } catch (e) {

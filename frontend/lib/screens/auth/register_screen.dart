@@ -19,9 +19,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _locationController = TextEditingController();
   final _phoneNumberController = TextEditingController();
+  final _dateOfBirthController = TextEditingController();
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  String _selectedGender = 'male';
+  String _selectedRole = 'talent';
 
   @override
   void dispose() {
@@ -29,8 +34,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _lastNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _locationController.dispose();
     _phoneNumberController.dispose();
+    _dateOfBirthController.dispose();
     super.dispose();
   }
 
@@ -44,7 +51,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       lastName: _lastNameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
-      role: 'talent',
+      role: _selectedRole,
       location: _locationController.text.trim(),
       phoneNumber: _phoneNumberController.text.trim(),
     );
@@ -91,8 +98,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderRadius: BorderRadius.circular(24),
                             ),
                             child: const Center(
-                              // Clock removed as requested
-                            ),
+                                // Clock removed as requested
+                                ),
                           ),
                         ],
                       ),
@@ -263,6 +270,146 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             }
                             return null;
                           },
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        _buildInputField(
+                          controller: _confirmPasswordController,
+                          hintText: 'Confirm Password',
+                          obscureText: _obscureConfirmPassword,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureConfirmPassword
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscureConfirmPassword =
+                                    !_obscureConfirmPassword;
+                              });
+                            },
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Konfirmasi password diperlukan';
+                            }
+                            if (value != _passwordController.text) {
+                              return 'Password tidak sama';
+                            }
+                            return null;
+                          },
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Role Selection
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: AppColors.shadowLight,
+                                blurRadius: 4,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedRole,
+                              hint: const Text('Select Role'),
+                              isExpanded: true,
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _selectedRole = newValue!;
+                                });
+                              },
+                              items: const [
+                                DropdownMenuItem(
+                                    value: 'talent',
+                                    child: Text('Looking for Job (Talent)')),
+                                DropdownMenuItem(
+                                    value: 'company',
+                                    child: Text('Hiring (Company)')),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Gender Selection
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: AppColors.shadowLight,
+                                blurRadius: 4,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedGender,
+                              hint: const Text('Select Gender'),
+                              isExpanded: true,
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _selectedGender = newValue!;
+                                });
+                              },
+                              items: const [
+                                DropdownMenuItem(
+                                    value: 'male', child: Text('Male')),
+                                DropdownMenuItem(
+                                    value: 'female', child: Text('Female')),
+                                DropdownMenuItem(
+                                    value: 'other', child: Text('Other')),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Date of Birth
+                        GestureDetector(
+                          onTap: () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now().subtract(
+                                  const Duration(days: 6570)), // 18 years ago
+                              firstDate: DateTime(1950),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                _dateOfBirthController.text =
+                                    "${picked.day}/${picked.month}/${picked.year}";
+                              });
+                            }
+                          },
+                          child: AbsorbPointer(
+                            child: _buildInputField(
+                              controller: _dateOfBirthController,
+                              hintText: 'Date of Birth (DD/MM/YYYY)',
+                              suffixIcon: const Icon(Icons.calendar_today),
+                              validator: (value) {
+                                // Date of birth is optional
+                                return null;
+                              },
+                            ),
+                          ),
                         ),
 
                         const SizedBox(height: 16),

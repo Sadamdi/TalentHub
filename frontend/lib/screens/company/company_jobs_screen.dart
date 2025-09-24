@@ -26,7 +26,13 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
 
   void _loadJobs() {
     final jobProvider = Provider.of<JobProvider>(context, listen: false);
-    jobProvider.getCompanyJobs();
+    print('🔄 CompanyJobsScreen: Loading company jobs...');
+    jobProvider.getCompanyJobs().then((_) {
+      print(
+          '✅ CompanyJobsScreen: Jobs loaded, count: ${jobProvider.companyJobs.length}');
+    }).catchError((error) {
+      print('❌ CompanyJobsScreen: Error loading jobs: $error');
+    });
   }
 
   Future<void> _showEditJobDialog(BuildContext context, Job job) async {
