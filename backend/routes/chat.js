@@ -65,38 +65,58 @@ router.get('/conversations', auth, async (req, res) => {
 // @access  Private (Talent or Company)
 router.get('/:applicationId', auth, async (req, res) => {
 	try {
+		console.log('🔍 GET Chat: Received request for applicationId:', req.params.applicationId);
+		console.log('👤 GET Chat: User role:', req.user.role);
+		console.log('🆔 GET Chat: User ID:', req.user._id);
+
 		const { role, _id: userId } = req.user;
 		const { applicationId } = req.params;
 
 		// Verify user has access to this application
+		console.log('🔍 GET Chat: Looking for application:', applicationId);
 		const application = await Application.findById(applicationId)
 			.populate('talentId', 'userId')
 			.populate('companyId', 'userId');
 
 		if (!application) {
+			console.log('❌ GET Chat: Application not found:', applicationId);
 			return res.status(404).json({
 				success: false,
 				message: 'Lamaran tidak ditemukan',
 			});
 		}
 
+		console.log('✅ GET Chat: Application found:', application._id);
+		console.log('👥 GET Chat: Talent ID:', application.talentId?.userId);
+		console.log('🏢 GET Chat: Company ID:', application.companyId?.userId);
+
+		// FIXED: Company should only access their own applications, like talent
 		const hasAccess =
 			(role === 'talent' &&
 				application.talentId.userId.toString() === userId.toString()) ||
-			role === 'company'; // Company can access any chat now
+			(role === 'company' &&
+				application.companyId.userId.toString() === userId.toString()) ||
+			role === 'admin'; // Admin can access any chat
+
+		console.log('🔐 GET Chat: Access check - Role:', role, 'Has access:', hasAccess);
+		console.log('🔍 GET Chat: Talent match:', role === 'talent' && application.talentId.userId.toString() === userId.toString());
+		console.log('🔍 GET Chat: Company match:', role === 'company' && application.companyId.userId.toString() === userId.toString());
 
 		if (!hasAccess) {
+			console.log('❌ GET Chat: Access denied for user:', userId, 'role:', role);
 			return res.status(403).json({
 				success: false,
 				message: 'Akses ditolak',
 			});
 		}
 
+		console.log('💬 GET Chat: Finding chat for application:', applicationId);
 		let chat = await Chat.findOne({ applicationId })
 			.populate('talentId', 'firstName lastName email')
 			.populate('companyId', 'firstName lastName email');
 
 		if (!chat) {
+			console.log('📝 GET Chat: Creating new chat for application:', applicationId);
 			// Create new chat if doesn't exist
 			chat = new Chat({
 				applicationId,
@@ -107,16 +127,23 @@ router.get('/:applicationId', auth, async (req, res) => {
 				companyUnreadCount: 0,
 			});
 			await chat.save();
+			console.log('✅ GET Chat: New chat created:', chat._id);
+		} else {
+			console.log('✅ GET Chat: Found existing chat:', chat._id);
+			console.log('📊 GET Chat: Chat has', chat.messages?.length || 0, 'messages');
 		}
 
 		// Mark messages as read
 		if (role === 'talent') {
 			chat.talentUnreadCount = 0;
+			console.log('📊 GET Chat: Reset talent unread count');
 		} else {
 			chat.companyUnreadCount = 0;
+			console.log('📊 GET Chat: Reset company unread count');
 		}
 		await chat.save();
 
+		console.log('📤 GET Chat: Sending chat response with', chat.messages?.length || 0, 'messages');
 		res.json({
 			success: true,
 			data: { chat },

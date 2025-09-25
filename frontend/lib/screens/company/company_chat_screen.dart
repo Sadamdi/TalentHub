@@ -279,17 +279,38 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
           print(
               '🎯 CompanyChatScreen: Opening chat for application: ${app.id}');
           print('👤 CompanyChatScreen: Applicant: ${app.applicantName}');
-          // Navigate to chat screen for this application
-          Navigator.of(context)
-              .push(
-            MaterialPageRoute(
-              builder: (context) => ChatScreen(applicationId: app.id),
-            ),
-          )
-              .then((_) {
-            // Refresh applications when returning from chat
-            print('🔄 CompanyChatScreen: Refreshing after returning from chat');
-            _loadApplications();
+
+          // COPY EXACT LOGIC FROM TALENT: Load application detail first
+          final applicationProvider =
+              Provider.of<ApplicationProvider>(context, listen: false);
+
+          // Pre-load the specific application to ensure it exists
+          print('🔍 CompanyChatScreen: Pre-loading application data...');
+          applicationProvider.getApplication(app.id).then((_) {
+            print(
+                '✅ CompanyChatScreen: Application loaded, navigating to chat');
+
+            // Navigate to chat screen for this application - SAME AS TALENT
+            Navigator.of(context)
+                .push(
+              MaterialPageRoute(
+                builder: (context) => ChatScreen(applicationId: app.id),
+              ),
+            )
+                .then((_) {
+              // Refresh applications when returning from chat
+              print(
+                  '🔄 CompanyChatScreen: Refreshing after returning from chat');
+              _loadApplications();
+            });
+          }).catchError((error) {
+            print('❌ CompanyChatScreen: Error loading application: $error');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Gagal memuat data aplikasi'),
+                backgroundColor: Colors.red,
+              ),
+            );
           });
         },
       ),
