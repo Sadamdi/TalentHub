@@ -244,14 +244,22 @@ Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
 
 ## 👥 Team
 
+### Development Team
 - **Backend Developer**: [@Sadamdi](https://github.com/Sadamdi) - Express.js, MongoDB, API Design
 - **Frontend Developer**: [@Sadamdi](https://github.com/Sadamdi) - Flutter, State Management
-- **UI/UX Designer**: Kelompok 3 Talent Hub Maliki Tech Fest - Material Design, User Experience
+
+### UI/UX Design Team
+- [@FirmanJK](https://github.com/FirmanJK) - UI/UX Designer
+- [@Nakamura55](https://github.com/Nakamura55) - UI/UX Designer  
+- [@RifkiArdiy](https://github.com/RifkiArdiy) - UI/UX Designer
+- [@Shimicreater](https://github.com/Shimicreater) - UI/UX Designer
+- [@Sofwatul Ummah](https://github.com/Sofwatulu) - UI/UX Designer
 
 ### Kelompok 3 Talent Hub Maliki Tech Fest
 - **Project**: Talent Hub
 - **Event**: Maliki Tech Fest
 - **Team**: Kelompok 3
+- **Total Contributors**: 6 members
 
 ## 📞 Support
 
@@ -283,6 +291,14 @@ Jika Anda mengalami masalah atau memiliki pertanyaan:
 - 📋 Web version
 - 📋 Multi-language support
 - 📋 Advanced matching algorithm
+
+---
+
+## 🤝 Contributors
+
+<a href="https://github.com/Sadamdi/TalentHub/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Sadamdi/TalentHub" />
+</a>
 
 ---
 
