@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../utils/app_colors.dart';
 import '../profile/edit_company_profile_screen.dart';
 import 'company_applications_screen.dart';
@@ -306,26 +307,34 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
   void _showSettingsDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Pengaturan'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.dark_mode),
-              title: const Text('Mode Gelap'),
-              trailing: Switch(
-                value: false, // TODO: Implement theme provider
-                onChanged: (value) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Mode gelap akan segera hadir!'),
-                    ),
-                  );
-                  Navigator.pop(context);
-                },
-              ),
-            ),
+      builder: (context) => Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return AlertDialog(
+            title: const Text('Pengaturan'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.dark_mode),
+                  title: const Text('Mode Gelap'),
+                  trailing: Switch(
+                    value: themeProvider.isDarkMode,
+                    onChanged: (value) async {
+                      await themeProvider.toggleTheme();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              themeProvider.isDarkMode 
+                                  ? 'Mode gelap diaktifkan' 
+                                  : 'Mode terang diaktifkan'
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
             ListTile(
               leading: const Icon(Icons.notifications),
               title: const Text('Notifikasi'),
@@ -343,12 +352,14 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Tutup'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Tutup'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

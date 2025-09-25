@@ -164,7 +164,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   // Judul
                   const Text(
-                    'Create Your Account',
+                    'Buat Akun Anda',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w600,
@@ -217,7 +217,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           Navigator.of(context).pop();
                         },
                         child: const Text(
-                          'Login instead',
+                          'Login saja',
                           style: TextStyle(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w600,
@@ -237,7 +237,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       children: [
                         _buildInputField(
                           controller: _firstNameController,
-                          hintText: 'First Name',
+                          hintText: 'Nama Depan',
                           fieldKey: _firstNameKey,
                           errorText: _firstNameError,
                           onClearError: () {
@@ -263,7 +263,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                         _buildInputField(
                           controller: _lastNameController,
-                          hintText: 'Last Name',
+                          hintText: 'Nama Belakang',
                           fieldKey: _lastNameKey,
                           errorText: _lastNameError,
                           onClearError: () {
@@ -323,7 +323,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                         _buildInputField(
                           controller: _passwordController,
-                          hintText: 'Create a Password',
+                          hintText: 'Buat Kata Sandi',
                           obscureText: _obscurePassword,
                           fieldKey: _passwordKey,
                           errorText: _passwordError,
@@ -368,7 +368,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                         _buildInputField(
                           controller: _confirmPasswordController,
-                          hintText: 'Confirm Password',
+                          hintText: 'Konfirmasi Kata Sandi',
                           obscureText: _obscureConfirmPassword,
                           fieldKey: _confirmPasswordKey,
                           errorText: _confirmPasswordError,

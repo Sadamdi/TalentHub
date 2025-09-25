@@ -174,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Judul
                   const Text(
-                    'Welcome Back',
+                    'Selamat Datang Kembali',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w600,
@@ -185,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Sign in to continue',
+                    'Masuk untuk melanjutkan',
                     style: TextStyle(
                       fontSize: 16,
                       color: AppColors.textSecondary,

@@ -41,6 +41,7 @@ class SearchFilterBar extends StatelessWidget {
               ],
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Icon(
                   Icons.search,
@@ -51,19 +52,20 @@ class SearchFilterBar extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     controller: searchController,
+                    textAlignVertical: TextAlignVertical.center,
                     onSubmitted: (_) =>
                         onSearchChanged?.call(searchController?.text ?? ''),
                     decoration: InputDecoration(
-                      hintText: 'search a job here...',
+                      hintText: 'Cari pekerjaan di sini...',
                       hintStyle: const TextStyle(
                         color: AppColors.textLight,
                         fontSize: 12,
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.w400,
-                        height: 1.50,
+                        height: 1.0,
                       ),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
                       suffixIcon: GestureDetector(
                         onTap: () {
                           searchController?.clear();
@@ -81,7 +83,7 @@ class SearchFilterBar extends StatelessWidget {
                       fontSize: 12,
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w400,
-                      height: 1.50,
+                      height: 1.0,
                     ),
                   ),
                 ),

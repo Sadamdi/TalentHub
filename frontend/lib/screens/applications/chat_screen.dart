@@ -350,9 +350,11 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       DateTime dateTime;
       if (timestamp is String) {
-        dateTime = DateTime.parse(timestamp);
+        // Parse as UTC first, then convert to local time
+        dateTime = DateTime.parse(timestamp).toLocal();
       } else if (timestamp is DateTime) {
-        dateTime = timestamp;
+        // Ensure it's in local time
+        dateTime = timestamp.toLocal();
       } else {
         return '';
       }

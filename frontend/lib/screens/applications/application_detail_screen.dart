@@ -400,19 +400,26 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     if (success == true) {
       final result = await provider.acceptApplication(applicationId);
       if (result) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Lamaran berhasil diterima'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        // Refresh the current application detail
+        await provider.getApplication(applicationId);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Lamaran berhasil diterima'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(provider.error ?? 'Gagal menerima lamaran'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(provider.error ?? 'Gagal menerima lamaran'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
       }
     }
   }
@@ -446,19 +453,26 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     if (success == true) {
       final result = await provider.rejectApplication(applicationId);
       if (result) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Lamaran berhasil ditolak'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        // Refresh the current application detail
+        await provider.getApplication(applicationId);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Lamaran berhasil ditolak'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(provider.error ?? 'Gagal menolak lamaran'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(provider.error ?? 'Gagal menolak lamaran'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
       }
     }
   }
@@ -486,26 +500,21 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
 
                 final success = await provider.cancelApplication(applicationId);
 
-                // Since we're in a dialog context, we need to be careful
                 if (success) {
-                  // Navigate back to previous screen
-                  Navigator.of(context).pop();
-                  // Show success message after navigation completes
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    try {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Lamaran berhasil dibatalkan'),
-                          backgroundColor: AppColors.success,
-                        ),
-                      );
-                    } catch (e) {
-                      // Ignore widget disposal errors
-                      print('Widget disposal error ignored: $e');
-                    }
-                  });
+                  // Refresh the current application detail
+                  await provider.getApplication(applicationId);
+
+                  // Show success message
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Lamaran berhasil dibatalkan'),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  }
                 } else {
-                  try {
+                  if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content:
@@ -513,9 +522,6 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                         backgroundColor: AppColors.error,
                       ),
                     );
-                  } catch (e) {
-                    // Ignore widget disposal errors
-                    print('Widget disposal error ignored: $e');
                   }
                 }
               },

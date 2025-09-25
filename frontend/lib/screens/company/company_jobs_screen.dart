@@ -218,14 +218,14 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Jobs'),
+        title: const Text('Pekerjaan Saya'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadJobs,
-            tooltip: 'Refresh Jobs',
+            tooltip: 'Muat Ulang Pekerjaan',
           ),
           PopupMenuButton<String>(
             onSelected: (value) {
@@ -238,7 +238,7 @@ class _CompanyJobsScreenState extends State<CompanyJobsScreen> {
             itemBuilder: (context) => [
               const PopupMenuItem(
                 value: 'clear_token',
-                child: Text('🔄 Clear Token & Relogin'),
+                child: Text('🔄 Hapus Token & Login Ulang'),
               ),
             ],
           ),

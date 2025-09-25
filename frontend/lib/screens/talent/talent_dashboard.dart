@@ -64,12 +64,12 @@ class _TalentDashboardState extends State<TalentDashboard> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Filter Jobs'),
-        content: const Text('Filter options coming soon!'),
+        title: const Text('Filter Pekerjaan'),
+        content: const Text('Opsi filter akan segera hadir!'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: const Text('Tutup'),
           ),
         ],
       ),
@@ -241,7 +241,7 @@ class _TalentDashboardState extends State<TalentDashboard> {
                                     children: [
                                       TextSpan(
                                         text:
-                                            'Good Afternoon, ${authProvider.user?.firstName ?? 'User'}.\n',
+                                            'Selamat Siang, ${authProvider.user?.firstName ?? 'User'}.\n',
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 20,
@@ -251,7 +251,8 @@ class _TalentDashboardState extends State<TalentDashboard> {
                                         ),
                                       ),
                                       const TextSpan(
-                                        text: 'Start your career here with ',
+                                        text:
+                                            'Mulai karir Anda di sini dengan ',
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 12,
@@ -346,7 +347,7 @@ class _TalentDashboardState extends State<TalentDashboard> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  'We Are Hiring UI/UX Designer',
+                                  'Kami Merekrut UI/UX Designer',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 18,
@@ -355,7 +356,7 @@ class _TalentDashboardState extends State<TalentDashboard> {
                                 ),
                                 SizedBox(height: 8),
                                 Text(
-                                  'Join our team and create amazing experiences',
+                                  'Bergabung dengan tim kami dan ciptakan pengalaman luar biasa',
                                   style: TextStyle(
                                     color: Colors.white70,
                                     fontSize: 14,
@@ -427,19 +428,19 @@ class _TalentDashboardState extends State<TalentDashboard> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _buildFilterChip('All', _selectedCategory == 'all'),
+                        _buildFilterChip('Semua', _selectedCategory == 'all'),
                         const SizedBox(width: 15),
                         _buildFilterChip(
-                            'Writer', _selectedCategory == 'writer'),
+                            'Penulis', _selectedCategory == 'writer'),
                         const SizedBox(width: 15),
                         _buildFilterChip(
-                            'Designer', _selectedCategory == 'designer'),
+                            'Desainer', _selectedCategory == 'designer'),
                         const SizedBox(width: 15),
                         _buildFilterChip(
-                            'Finance', _selectedCategory == 'finance'),
+                            'Keuangan', _selectedCategory == 'finance'),
                         const SizedBox(width: 15),
                         _buildFilterChip(
-                            'Marketing', _selectedCategory == 'marketing'),
+                            'Pemasaran', _selectedCategory == 'marketing'),
                         const SizedBox(width: 15),
                         _buildFilterChip(
                             'Developer', _selectedCategory == 'developer'),
@@ -523,9 +524,29 @@ class _TalentDashboardState extends State<TalentDashboard> {
     );
   }
 
+  String _getFilterCategory(String label) {
+    switch (label) {
+      case 'Semua':
+        return 'all';
+      case 'Penulis':
+        return 'writer';
+      case 'Desainer':
+        return 'designer';
+      case 'Keuangan':
+        return 'finance';
+      case 'Pemasaran':
+        return 'marketing';
+      case 'Developer':
+        return 'developer';
+      default:
+        return label.toLowerCase();
+    }
+  }
+
   Widget _buildFilterChip(String label, bool isSelected) {
     return GestureDetector(
-      onTap: () => _onFilterChanged(label == 'All' ? 'all' : label),
+      onTap: () => _onFilterChanged(
+          label == 'Semua' ? 'all' : _getFilterCategory(label)),
       child: Container(
         height: 24,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),

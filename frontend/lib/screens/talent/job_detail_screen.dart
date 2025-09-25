@@ -96,21 +96,21 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   }
 
   String _getApplyButtonText() {
-    if (!_hasApplied) return 'Apply Now';
+    if (!_hasApplied) return 'Lamar Sekarang';
 
     switch (_applicationStatus) {
       case 'pending':
-        return 'Applied';
+        return 'Sudah Dilamar';
       case 'interview':
-        return 'In Review';
+        return 'Sedang Ditinjau';
       case 'hired':
-        return 'Hired';
+        return 'Diterima';
       case 'rejected':
-        return 'Apply Again';
+        return 'Lamar Lagi';
       case 'cancelled':
-        return 'Apply Again';
+        return 'Lamar Lagi';
       default:
-        return 'Applied';
+        return 'Sudah Dilamar';
     }
   }
 
@@ -244,14 +244,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Container(
-                              width: 125,
-                              height: 37,
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.circular(100),
-                              ),
-                            ),
+                            // Bulatan hitam dihapus sesuai permintaan
                           ],
                         ),
                       ),
@@ -309,7 +302,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                         ),
                       ),
                       const Text(
-                        'Job Details',
+                        'Detail Pekerjaan',
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 18,
