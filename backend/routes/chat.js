@@ -65,7 +65,10 @@ router.get('/conversations', auth, async (req, res) => {
 // @access  Private (Talent or Company)
 router.get('/:applicationId', auth, async (req, res) => {
 	try {
-		console.log('🔍 GET Chat: Received request for applicationId:', req.params.applicationId);
+		console.log(
+			'🔍 GET Chat: Received request for applicationId:',
+			req.params.applicationId
+		);
 		console.log('👤 GET Chat: User role:', req.user.role);
 		console.log('🆔 GET Chat: User ID:', req.user._id);
 
@@ -98,12 +101,30 @@ router.get('/:applicationId', auth, async (req, res) => {
 				application.companyId.userId.toString() === userId.toString()) ||
 			role === 'admin'; // Admin can access any chat
 
-		console.log('🔐 GET Chat: Access check - Role:', role, 'Has access:', hasAccess);
-		console.log('🔍 GET Chat: Talent match:', role === 'talent' && application.talentId.userId.toString() === userId.toString());
-		console.log('🔍 GET Chat: Company match:', role === 'company' && application.companyId.userId.toString() === userId.toString());
+		console.log(
+			'🔐 GET Chat: Access check - Role:',
+			role,
+			'Has access:',
+			hasAccess
+		);
+		console.log(
+			'🔍 GET Chat: Talent match:',
+			role === 'talent' &&
+				application.talentId.userId.toString() === userId.toString()
+		);
+		console.log(
+			'🔍 GET Chat: Company match:',
+			role === 'company' &&
+				application.companyId.userId.toString() === userId.toString()
+		);
 
 		if (!hasAccess) {
-			console.log('❌ GET Chat: Access denied for user:', userId, 'role:', role);
+			console.log(
+				'❌ GET Chat: Access denied for user:',
+				userId,
+				'role:',
+				role
+			);
 			return res.status(403).json({
 				success: false,
 				message: 'Akses ditolak',
@@ -116,7 +137,10 @@ router.get('/:applicationId', auth, async (req, res) => {
 			.populate('companyId', 'firstName lastName email');
 
 		if (!chat) {
-			console.log('📝 GET Chat: Creating new chat for application:', applicationId);
+			console.log(
+				'📝 GET Chat: Creating new chat for application:',
+				applicationId
+			);
 			// Create new chat if doesn't exist
 			chat = new Chat({
 				applicationId,
@@ -130,7 +154,11 @@ router.get('/:applicationId', auth, async (req, res) => {
 			console.log('✅ GET Chat: New chat created:', chat._id);
 		} else {
 			console.log('✅ GET Chat: Found existing chat:', chat._id);
-			console.log('📊 GET Chat: Chat has', chat.messages?.length || 0, 'messages');
+			console.log(
+				'📊 GET Chat: Chat has',
+				chat.messages?.length || 0,
+				'messages'
+			);
 		}
 
 		// Mark messages as read
@@ -143,7 +171,11 @@ router.get('/:applicationId', auth, async (req, res) => {
 		}
 		await chat.save();
 
-		console.log('📤 GET Chat: Sending chat response with', chat.messages?.length || 0, 'messages');
+		console.log(
+			'📤 GET Chat: Sending chat response with',
+			chat.messages?.length || 0,
+			'messages'
+		);
 		res.json({
 			success: true,
 			data: { chat },

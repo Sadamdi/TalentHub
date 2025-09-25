@@ -73,7 +73,7 @@ npm install
 ```bash
 # Edit config.env file
 PORT=5000
-MONGODB_URI=mongodb+srv://talenthub:<db_password>@cluster0.4s7g3ox.mongodb.net/talent_hub?retryWrites=true&w=majority&appName=Cluster0
+MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret_key_here
 NODE_ENV=development
 ```
@@ -193,10 +193,37 @@ flutter run
 
 ## 🚀 Deployment
 
-### Backend (Heroku/Railway)
-1. Connect repository ke platform
-2. Set environment variables
-3. Deploy otomatis
+### Backend (VPS/Cloud Server)
+1. **Setup VPS/Cloud Server** (Ubuntu/CentOS recommended)
+2. **Install Node.js dan PM2**:
+   ```bash
+   # Install Node.js
+   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+   sudo apt-get install -y nodejs
+   
+   # Install PM2 globally
+   sudo npm install -g pm2
+   ```
+3. **Clone repository dan setup**:
+   ```bash
+   git clone https://github.com/Sadamdi/TalentHub.git
+   cd TalentHub/backend
+   npm install
+   ```
+4. **Setup environment variables**:
+   ```bash
+   # Edit config.env file
+   PORT=5000
+   MONGODB_URI=your_mongodb_connection_string
+   JWT_SECRET=your_jwt_secret_key_here
+   NODE_ENV=production
+   ```
+5. **Start dengan PM2**:
+   ```bash
+   pm2 start server.js --name "talenthub-backend"
+   pm2 startup
+   pm2 save
+   ```
 
 ### Frontend (Firebase/Play Store)
 1. Build release APK/IPA
@@ -213,21 +240,29 @@ flutter run
 
 ## 📝 License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
 
 ## 👥 Team
 
-- **Backend Developer**: Express.js, MongoDB, API Design
-- **Frontend Developer**: Flutter, UI/UX, State Management
-- **UI/UX Designer**: Material Design, User Experience
+- **Backend Developer**: [@Sadamdi](https://github.com/Sadamdi) - Express.js, MongoDB, API Design
+- **Frontend Developer**: [@Sadamdi](https://github.com/Sadamdi) - Flutter, State Management
+- **UI/UX Designer**: Kelompok 3 Talent Hub Maliki Tech Fest - Material Design, User Experience
+
+### Kelompok 3 Talent Hub Maliki Tech Fest
+- **Project**: Talent Hub
+- **Event**: Maliki Tech Fest
+- **Team**: Kelompok 3
 
 ## 📞 Support
 
 Jika Anda mengalami masalah atau memiliki pertanyaan:
 
-1. Check [Issues](https://github.com/your-repo/issues) untuk solusi yang sudah ada
-2. Buat [New Issue](https://github.com/your-repo/issues/new) dengan detail yang jelas
-3. Email: support@talenthub.com
+1. Check [Issues](https://github.com/Sadamdi/TalentHub/issues) untuk solusi yang sudah ada
+2. Buat [New Issue](https://github.com/Sadamdi/TalentHub/issues/new) dengan detail yang jelas
+3. Email: sultanadamr@gmail.com
+
+### Repository
+- **GitHub**: [https://github.com/Sadamdi/TalentHub](https://github.com/Sadamdi/TalentHub)
 
 ## 🎯 Roadmap
 
