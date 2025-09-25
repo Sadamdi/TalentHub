@@ -442,34 +442,28 @@ class ApplicationProvider extends ChangeNotifier {
   Future<Map<String, dynamic>> sendChatMessage(
       String applicationId, String message) async {
     try {
-      print(
-          '🔍 ApplicationProvider: Sending message to applicationId: $applicationId');
+      print('🔍 ApplicationProvider: Sending message to applicationId: $applicationId');
       print('💬 ApplicationProvider: Message: $message');
-
+      
       final response = await _apiService.sendChatMessage(
           applicationId, message, null); // Let backend determine role
-
-      print(
-          '📡 ApplicationProvider: Send message response status: ${response.statusCode}');
-      print(
-          '📄 ApplicationProvider: Send message response data: ${response.data}');
-
+          
+      print('📡 ApplicationProvider: Send message response status: ${response.statusCode}');
+      print('📄 ApplicationProvider: Send message response data: ${response.data}');
+      
       if (response.statusCode == 201 || response.statusCode == 200) {
-        print(
-            '✅ ApplicationProvider: Message sent successfully, refreshing chat...');
+        print('✅ ApplicationProvider: Message sent successfully, refreshing chat...');
         // Refresh chat after sending message
         await getChatByApplicationId(applicationId);
-
-        if (response.data['data'] != null &&
-            response.data['data']['message'] != null) {
+        
+        if (response.data['data'] != null && response.data['data']['message'] != null) {
           return response.data['data']['message'];
         } else {
           return response.data['data'] ?? {};
         }
       } else {
-        print(
-            '❌ ApplicationProvider: Failed to send message, status: ${response.statusCode}');
-        _setError('Failed to send message');
+        print('❌ ApplicationProvider: Failed to send message, status: ${response.statusCode}');
+        _setError('Failed to send message: ${response.data['message'] ?? 'Unknown error'}');
         return {};
       }
     } catch (e) {

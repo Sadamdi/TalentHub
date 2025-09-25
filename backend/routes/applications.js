@@ -387,7 +387,7 @@ router.get('/company', [auth, requireCompanyOrAdmin], async (req, res) => {
 			});
 		}
 
-		// For company users, get only applications for their jobs
+		// For company users, get all applications (same as admin)
 		company = await Company.findOne({ userId: req.user._id });
 		if (!company) {
 			// Auto-create company profile if it doesn't exist
@@ -399,17 +399,8 @@ router.get('/company', [auth, requireCompanyOrAdmin], async (req, res) => {
 			await company.save();
 		}
 
-		// Find all jobs created by this company
-		const Job = require('../models/Job');
-		const companyJobs = await Job.find({ companyId: company._id }).select(
-			'_id'
-		);
-		const companyJobIds = companyJobs.map((job) => job._id);
-
-		// Company can only see applications for their own jobs
-		const applications = await Application.find({
-			jobId: { $in: companyJobIds },
-		})
+		// Company can see all applications (same access as admin)
+		const applications = await Application.find()
 			.populate({
 				path: 'jobId',
 				select: 'title description location salary',

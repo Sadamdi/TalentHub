@@ -300,17 +300,21 @@ class ApiService {
   Future<Response> sendChatMessage(
       String applicationId, String message, String? senderRole) async {
     try {
-      print(
-          'ApiService: Sending message to application: $applicationId with role: $senderRole');
+      print('🚀 ApiService: Sending message to application: $applicationId');
+      print('💬 ApiService: Message: $message');
+      print('👤 ApiService: Sender role: $senderRole');
 
       final data = {'message': message};
       if (senderRole != null) {
         data['senderRole'] = senderRole;
       }
 
-      return await _dio.post('/chat/$applicationId/messages', data: data);
+      print('📤 ApiService: Request data: $data');
+      final response = await _dio.post('/chat/$applicationId/messages', data: data);
+      print('📨 ApiService: Response received: ${response.statusCode}');
+      return response;
     } catch (e) {
-      print('ApiService: Send chat message error: $e');
+      print('❌ ApiService: Send chat message error: $e');
       rethrow;
     }
   }

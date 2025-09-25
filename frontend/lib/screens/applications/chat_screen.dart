@@ -116,9 +116,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
       await applicationProvider.sendChatMessage(widget.applicationId, message);
 
-      // Force reload chat to get the latest message
-      await applicationProvider.getChatByApplicationId(widget.applicationId);
-
       // Update last message ID from the new chat data
       final chat = applicationProvider.chat;
       if (chat != null &&

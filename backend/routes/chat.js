@@ -138,8 +138,15 @@ router.post(
 	[auth, body('message').notEmpty().withMessage('Pesan tidak boleh kosong')],
 	async (req, res) => {
 		try {
+			console.log('🚀 Chat: Received send message request');
+			console.log('👤 Chat: User role:', req.user.role);
+			console.log('🆔 Chat: User ID:', req.user._id);
+			console.log('📧 Chat: Application ID:', req.params.applicationId);
+			console.log('💬 Chat: Message:', req.body.message);
+
 			const errors = validationResult(req);
 			if (!errors.isEmpty()) {
+				console.log('❌ Chat: Validation errors:', errors.array());
 				return res.status(400).json({
 					success: false,
 					message: 'Data tidak valid',
@@ -152,32 +159,52 @@ router.post(
 			const { message } = req.body;
 
 			// Verify user has access to this application
+			console.log('🔍 Chat: Looking for application:', applicationId);
 			const application = await Application.findById(applicationId)
 				.populate('talentId', 'userId')
 				.populate('companyId', 'userId');
 
 			if (!application) {
+				console.log('❌ Chat: Application not found:', applicationId);
 				return res.status(404).json({
 					success: false,
 					message: 'Lamaran tidak ditemukan',
 				});
 			}
 
+			console.log('✅ Chat: Application found:', application._id);
+			console.log('👥 Chat: Talent ID:', application.talentId?.userId);
+			console.log('🏢 Chat: Company ID:', application.companyId?.userId);
+
 			const hasAccess =
 				(role === 'talent' &&
 					application.talentId.userId.toString() === userId.toString()) ||
-				role === 'company'; // Company can access any chat now
+				role === 'company' || // Company can access any chat now
+				role === 'admin'; // Admin can access any chat
+
+			console.log(
+				'🔐 Chat: Access check - Role:',
+				role,
+				'Has access:',
+				hasAccess
+			);
 
 			if (!hasAccess) {
+				console.log('❌ Chat: Access denied for user:', userId, 'role:', role);
 				return res.status(403).json({
 					success: false,
 					message: 'Akses ditolak',
 				});
 			}
 
+			console.log('💬 Chat: Finding chat for application:', applicationId);
 			let chat = await Chat.findOne({ applicationId });
 
 			if (!chat) {
+				console.log(
+					'📝 Chat: Creating new chat for application:',
+					applicationId
+				);
 				// Create new chat if doesn't exist
 				chat = new Chat({
 					applicationId,
@@ -187,6 +214,8 @@ router.post(
 					talentUnreadCount: 0,
 					companyUnreadCount: 0,
 				});
+			} else {
+				console.log('✅ Chat: Found existing chat:', chat._id);
 			}
 
 			// Add new message
@@ -198,6 +227,7 @@ router.post(
 				isRead: false,
 			};
 
+			console.log('📨 Chat: Adding new message:', newMessage);
 			chat.messages.push(newMessage);
 			chat.lastMessage = message;
 			chat.lastMessageTime = new Date();
@@ -205,24 +235,35 @@ router.post(
 			// Update unread count
 			if (role === 'talent') {
 				chat.companyUnreadCount += 1;
+				console.log('📊 Chat: Updated company unread count');
 			} else {
 				chat.talentUnreadCount += 1;
+				console.log('📊 Chat: Updated talent unread count');
 			}
 
+			console.log('💾 Chat: Saving chat...');
 			await chat.save();
+			console.log('✅ Chat: Chat saved successfully');
 
 			// Populate the new message
+			console.log('🔗 Chat: Populating message data...');
 			await chat.populate('messages.senderId', 'firstName lastName email');
+
+			const responseMessage = chat.messages[chat.messages.length - 1];
+			console.log(
+				'📤 Chat: Sending response with message:',
+				responseMessage._id
+			);
 
 			res.json({
 				success: true,
 				message: 'Pesan berhasil dikirim',
 				data: {
-					message: chat.messages[chat.messages.length - 1],
+					message: responseMessage,
 				},
 			});
 		} catch (error) {
-			console.error('Send message error:', error);
+			console.error('❌ Chat: Send message error:', error);
 			res.status(500).json({
 				success: false,
 				message: 'Terjadi kesalahan pada server',
