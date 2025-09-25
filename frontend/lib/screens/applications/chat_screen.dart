@@ -20,6 +20,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = false;
+  bool _isSending = false;
   Timer? _pollTimer;
   String? _lastMessageId;
 
@@ -39,9 +40,10 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _startPolling() {
-    // Poll for new messages every 3 seconds
-    _pollTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (mounted) {
+    // Poll for new messages every 5 seconds (lebih jarang untuk menghindari konflik)
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted && !_isSending) {
+        // Jangan polling saat sedang mengirim pesan
         _loadChatSilently();
       }
     });
@@ -99,21 +101,41 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _sendMessage() async {
-    if (_messageController.text.trim().isEmpty) return;
+    if (_messageController.text.trim().isEmpty || _isSending) return;
 
     final message = _messageController.text.trim();
     _messageController.clear();
 
-    final applicationProvider =
-        Provider.of<ApplicationProvider>(context, listen: false);
+    setState(() {
+      _isSending = true;
+    });
 
-    await applicationProvider.sendChatMessage(widget.applicationId, message);
+    try {
+      final applicationProvider =
+          Provider.of<ApplicationProvider>(context, listen: false);
 
-    // Reload chat to show new message
-    await _loadChatSilently();
+      await applicationProvider.sendChatMessage(widget.applicationId, message);
 
-    // Scroll to bottom
-    _scrollToBottom();
+      // Force reload chat to get the latest message
+      await applicationProvider.getChatByApplicationId(widget.applicationId);
+
+      // Update last message ID from the new chat data
+      final chat = applicationProvider.chat;
+      if (chat != null &&
+          chat['messages'] != null &&
+          chat['messages'].isNotEmpty) {
+        _lastMessageId = chat['messages'].last['_id'] ?? '';
+      }
+
+      // Scroll to bottom
+      _scrollToBottom();
+    } catch (e) {
+      print('Error sending message: $e');
+    } finally {
+      setState(() {
+        _isSending = false;
+      });
+    }
   }
 
   void _scrollToBottom() {
@@ -326,12 +348,22 @@ class _ChatScreenState extends State<ChatScreen> {
                         borderRadius: BorderRadius.circular(22),
                       ),
                       child: IconButton(
-                        onPressed: _sendMessage,
-                        icon: const Icon(
-                          Icons.send,
-                          size: 18,
-                          color: Colors.white,
-                        ),
+                        onPressed: _isSending ? null : _sendMessage,
+                        icon: _isSending
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                ),
+                              )
+                            : const Icon(
+                                Icons.send,
+                                size: 18,
+                                color: Colors.white,
+                              ),
                       ),
                     ),
                   ],

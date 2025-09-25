@@ -96,18 +96,40 @@ class ApplicationProvider extends ChangeNotifier {
   }
 
   Future<void> getCompanyApplications() async {
+    print('🔍 ApplicationProvider: Getting company applications...');
     _setLoading(true);
     _clearError();
 
     try {
       final response = await _apiService.getCompanyApplications();
+      print(
+          '📡 ApplicationProvider: Company apps API response status: ${response.statusCode}');
+      print(
+          '📄 ApplicationProvider: Company apps API response data: ${response.data}');
+
       if (response.statusCode == 200) {
-        _companyApplications =
-            (response.data['data']['applications'] as List<dynamic>)
-                .map((application) => Application.fromJson(application))
-                .toList();
+        final applicationsData =
+            response.data['data']['applications'] as List<dynamic>;
+        print(
+            '📊 ApplicationProvider: Found ${applicationsData.length} company applications');
+
+        _companyApplications = applicationsData
+            .map((application) => Application.fromJson(application))
+            .toList();
+
+        print(
+            '✅ ApplicationProvider: Successfully parsed ${_companyApplications.length} applications');
+        if (_companyApplications.isNotEmpty) {
+          print(
+              '📝 ApplicationProvider: First app: ${_companyApplications.first.applicantName}');
+        }
+      } else {
+        print(
+            '❌ ApplicationProvider: Unexpected status code: ${response.statusCode}');
+        _setError('Failed to load company applications: ${response.data}');
       }
     } catch (e) {
+      print('❌ ApplicationProvider: Error loading company applications: $e');
       _handleError(e);
     } finally {
       _setLoading(false);
@@ -420,20 +442,38 @@ class ApplicationProvider extends ChangeNotifier {
   Future<Map<String, dynamic>> sendChatMessage(
       String applicationId, String message) async {
     try {
-      // Get current user's role from AuthProvider
-      // We need to get the role dynamically
+      print(
+          '🔍 ApplicationProvider: Sending message to applicationId: $applicationId');
+      print('💬 ApplicationProvider: Message: $message');
+
       final response = await _apiService.sendChatMessage(
           applicationId, message, null); // Let backend determine role
-      if (response.statusCode == 201) {
+
+      print(
+          '📡 ApplicationProvider: Send message response status: ${response.statusCode}');
+      print(
+          '📄 ApplicationProvider: Send message response data: ${response.data}');
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        print(
+            '✅ ApplicationProvider: Message sent successfully, refreshing chat...');
         // Refresh chat after sending message
         await getChatByApplicationId(applicationId);
-        return response.data['data']['message'];
+
+        if (response.data['data'] != null &&
+            response.data['data']['message'] != null) {
+          return response.data['data']['message'];
+        } else {
+          return response.data['data'] ?? {};
+        }
       } else {
+        print(
+            '❌ ApplicationProvider: Failed to send message, status: ${response.statusCode}');
         _setError('Failed to send message');
         return {};
       }
     } catch (e) {
-      print('ApplicationProvider: Error sending message: $e');
+      print('❌ ApplicationProvider: Error sending message: $e');
       _setError('Error sending message: $e');
       return {};
     }

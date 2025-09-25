@@ -31,8 +31,8 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
   }
 
   void _startPolling() {
-    // Poll for new messages every 5 seconds
-    _pollTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+    // Poll for new messages every 10 seconds (lebih jarang untuk menghindari konflik)
+    _pollTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (mounted) {
         _loadApplicationsSilently();
       }
@@ -42,17 +42,30 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
   void _loadApplications() {
     final applicationProvider =
         Provider.of<ApplicationProvider>(context, listen: false);
-    applicationProvider.getCompanyApplications().catchError((error) {
-      print('Error loading chat applications: $error');
+    print('🔍 CompanyChatScreen: Loading company applications...');
+    applicationProvider.getCompanyApplications().then((_) {
+      print('✅ CompanyChatScreen: Applications loaded successfully');
+      print(
+          '📊 CompanyChatScreen: Total applications: ${applicationProvider.companyApplications.length}');
+      if (applicationProvider.companyApplications.isNotEmpty) {
+        print(
+            '📝 CompanyChatScreen: First application: ${applicationProvider.companyApplications.first.applicantName}');
+      }
+    }).catchError((error) {
+      print('❌ CompanyChatScreen: Error loading chat applications: $error');
     });
   }
 
   void _loadApplicationsSilently() {
+    if (!mounted) return;
     final applicationProvider =
         Provider.of<ApplicationProvider>(context, listen: false);
-    applicationProvider.getCompanyApplications().catchError((error) {
-      print('Error loading chat applications silently: $error');
-    });
+    // Jangan load jika sedang loading
+    if (!applicationProvider.isLoading) {
+      applicationProvider.getCompanyApplications().catchError((error) {
+        print('Error loading chat applications silently: $error');
+      });
+    }
   }
 
   @override
@@ -103,17 +116,19 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
           }
 
           if (applicationProvider.companyApplications.isEmpty) {
-            return const Center(
+            print(
+                '⚠️ CompanyChatScreen: No applications found, showing empty state');
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.chat_bubble_outline,
                     size: 64,
                     color: AppColors.textLight,
                   ),
-                  SizedBox(height: 16),
-                  Text(
+                  const SizedBox(height: 16),
+                  const Text(
                     'Belum ada pelamar',
                     style: TextStyle(
                       fontSize: 18,
@@ -121,14 +136,22 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  SizedBox(height: 8),
-                  Text(
+                  const SizedBox(height: 8),
+                  const Text(
                     'Pelamar akan muncul di sini setelah melamar pekerjaan',
                     style: TextStyle(
                       fontSize: 14,
                       color: AppColors.textLight,
                     ),
                     textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () {
+                      print('🔄 CompanyChatScreen: Manual refresh triggered');
+                      _loadApplications();
+                    },
+                    child: const Text('Muat Ulang'),
                   ),
                 ],
               ),
