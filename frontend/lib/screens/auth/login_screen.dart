@@ -18,18 +18,42 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _emailFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
+  final _emailKey = GlobalKey();
+  final _passwordKey = GlobalKey();
   bool _obscurePassword = true;
   bool _rememberMe = false;
+  String? _emailError;
+  String? _passwordError;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
     super.dispose();
   }
 
+  void _scrollToFirstError() {
+    // Scroll ke field pertama yang error
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_emailController.text.isEmpty ||
+          !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+              .hasMatch(_emailController.text)) {
+        Scrollable.ensureVisible(_emailKey.currentContext!);
+      } else if (_passwordController.text.isEmpty) {
+        Scrollable.ensureVisible(_passwordKey.currentContext!);
+      }
+    });
+  }
+
   Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      _scrollToFirstError();
+      return;
+    }
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
@@ -177,113 +201,212 @@ class _LoginScreenState extends State<LoginScreen> {
                     key: _formKey,
                     child: Column(
                       children: [
-                        Container(
-                          height: 42,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: AppColors.shadowMedium,
-                                blurRadius: 10,
-                                offset: Offset(1, 0),
+                        // Email field dengan error handling yang proper
+                        Column(
+                          key: _emailKey,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              height: 52,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: _emailError != null
+                                    ? Border.all(
+                                        color: AppColors.error, width: 1)
+                                    : null,
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: AppColors.shadowMedium,
+                                    blurRadius: 10,
+                                    offset: Offset(1, 0),
+                                  ),
+                                  BoxShadow(
+                                    color: AppColors.shadowLight,
+                                    blurRadius: 4,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
                               ),
-                              BoxShadow(
-                                color: AppColors.shadowLight,
-                                blurRadius: 4,
-                                offset: Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: const InputDecoration(
-                              labelText: 'Email',
-                              hintText: 'Masukkan email Anda',
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
-                              labelStyle: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontFamily: 'Poppins',
-                              ),
-                              floatingLabelStyle: TextStyle(
-                                color: AppColors.primary,
-                                fontFamily: 'Poppins',
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Email diperlukan';
-                              }
-                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                                  .hasMatch(value)) {
-                                return 'Format email tidak valid';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          height: 42,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: AppColors.shadowMedium,
-                                blurRadius: 10,
-                                offset: Offset(1, 0),
-                              ),
-                              BoxShadow(
-                                color: AppColors.shadowLight,
-                                blurRadius: 4,
-                                offset: Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: TextFormField(
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            decoration: InputDecoration(
-                              labelText: 'Password',
-                              hintText: 'Masukkan password Anda',
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
-                              labelStyle: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontFamily: 'Poppins',
-                              ),
-                              floatingLabelStyle: TextStyle(
-                                color: AppColors.primary,
-                                fontFamily: 'Poppins',
-                              ),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility
-                                      : Icons.visibility_off,
-                                ),
-                                onPressed: () {
+                              child: TextFormField(
+                                controller: _emailController,
+                                focusNode: _emailFocusNode,
+                                keyboardType: TextInputType.emailAddress,
+                                maxLines: 1,
+                                onTap: () {
                                   setState(() {
-                                    _obscurePassword = !_obscurePassword;
+                                    _emailError = null;
                                   });
+                                },
+                                onChanged: (value) {
+                                  setState(() {
+                                    _emailError = null;
+                                  });
+
+                                  // Auto-format email: spasi jadi @
+                                  if (value.isNotEmpty &&
+                                      !value.contains('@') &&
+                                      value.contains(' ')) {
+                                    String formatted =
+                                        value.replaceAll(' ', '@');
+                                    _emailController.value = TextEditingValue(
+                                      text: formatted,
+                                      selection: TextSelection.collapsed(
+                                          offset: formatted.length),
+                                    );
+                                  }
+                                },
+                                decoration: const InputDecoration(
+                                  hintText: 'Email',
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.zero,
+                                  errorStyle: TextStyle(height: 0),
+                                  hintStyle: TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontFamily: 'Poppins',
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    setState(() {
+                                      _emailError = 'Email diperlukan';
+                                    });
+                                    return '';
+                                  }
+                                  if (!RegExp(
+                                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                      .hasMatch(value)) {
+                                    setState(() {
+                                      _emailError = 'Format email tidak valid';
+                                    });
+                                    return '';
+                                  }
+                                  setState(() {
+                                    _emailError = null;
+                                  });
+                                  return null;
                                 },
                               ),
                             ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Password diperlukan';
-                              }
-                              return null;
-                            },
-                          ),
+                            // Error message dengan space sendiri
+                            if (_emailError != null)
+                              Padding(
+                                padding:
+                                    const EdgeInsets.only(top: 6, left: 12),
+                                child: Text(
+                                  _emailError!,
+                                  style: const TextStyle(
+                                    color: AppColors.error,
+                                    fontSize: 12,
+                                    fontFamily: 'Poppins',
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
 
-                        const SizedBox(height: 16),
+                        SizedBox(height: _emailError != null ? 12 : 16),
+
+                        // Password field dengan error handling yang proper
+                        Column(
+                          key: _passwordKey,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              height: 52,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: _passwordError != null
+                                    ? Border.all(
+                                        color: AppColors.error, width: 1)
+                                    : null,
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: AppColors.shadowMedium,
+                                    blurRadius: 10,
+                                    offset: Offset(1, 0),
+                                  ),
+                                  BoxShadow(
+                                    color: AppColors.shadowLight,
+                                    blurRadius: 4,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: TextFormField(
+                                controller: _passwordController,
+                                focusNode: _passwordFocusNode,
+                                obscureText: _obscurePassword,
+                                maxLines: 1,
+                                onTap: () {
+                                  setState(() {
+                                    _passwordError = null;
+                                  });
+                                },
+                                onChanged: (value) {
+                                  setState(() {
+                                    _passwordError = null;
+                                  });
+                                },
+                                decoration: InputDecoration(
+                                  hintText: 'Password',
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.zero,
+                                  errorStyle: const TextStyle(height: 0),
+                                  hintStyle: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontFamily: 'Poppins',
+                                    fontSize: 16,
+                                  ),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility
+                                          : Icons.visibility_off,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _obscurePassword = !_obscurePassword;
+                                      });
+                                    },
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    setState(() {
+                                      _passwordError = 'Password diperlukan';
+                                    });
+                                    return '';
+                                  }
+                                  setState(() {
+                                    _passwordError = null;
+                                  });
+                                  return null;
+                                },
+                              ),
+                            ),
+                            // Error message dengan space sendiri
+                            if (_passwordError != null)
+                              Padding(
+                                padding:
+                                    const EdgeInsets.only(top: 6, left: 12),
+                                child: Text(
+                                  _passwordError!,
+                                  style: const TextStyle(
+                                    color: AppColors.error,
+                                    fontSize: 12,
+                                    fontFamily: 'Poppins',
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+
+                        SizedBox(height: _passwordError != null ? 12 : 16),
 
                         // Remember Me & Forgot Password
                         Row(

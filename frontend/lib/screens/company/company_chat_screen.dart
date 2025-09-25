@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -13,10 +15,28 @@ class CompanyChatScreen extends StatefulWidget {
 }
 
 class _CompanyChatScreenState extends State<CompanyChatScreen> {
+  Timer? _pollTimer;
+
   @override
   void initState() {
     super.initState();
     _loadApplications();
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    // Poll for new messages every 5 seconds
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        _loadApplicationsSilently();
+      }
+    });
   }
 
   void _loadApplications() {
@@ -24,6 +44,14 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
         Provider.of<ApplicationProvider>(context, listen: false);
     applicationProvider.getCompanyApplications().catchError((error) {
       print('Error loading chat applications: $error');
+    });
+  }
+
+  void _loadApplicationsSilently() {
+    final applicationProvider =
+        Provider.of<ApplicationProvider>(context, listen: false);
+    applicationProvider.getCompanyApplications().catchError((error) {
+      print('Error loading chat applications silently: $error');
     });
   }
 

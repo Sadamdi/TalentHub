@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -18,11 +20,31 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = false;
+  Timer? _pollTimer;
+  String? _lastMessageId;
 
   @override
   void initState() {
     super.initState();
     _loadChat();
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    // Poll for new messages every 3 seconds
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (mounted) {
+        _loadChatSilently();
+      }
+    });
   }
 
   Future<void> _loadChat() async {
@@ -34,9 +56,46 @@ class _ChatScreenState extends State<ChatScreen> {
         Provider.of<ApplicationProvider>(context, listen: false);
     await applicationProvider.getChatByApplicationId(widget.applicationId);
 
+    // Update last message ID for comparison
+    final chat = applicationProvider.chat;
+    if (chat != null &&
+        chat['messages'] != null &&
+        chat['messages'].isNotEmpty) {
+      _lastMessageId = chat['messages'].last['_id'] ?? '';
+    }
+
     setState(() {
       _isLoading = false;
     });
+
+    // Auto scroll to bottom after loading
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom();
+    });
+  }
+
+  Future<void> _loadChatSilently() async {
+    final applicationProvider =
+        Provider.of<ApplicationProvider>(context, listen: false);
+    await applicationProvider.getChatByApplicationId(widget.applicationId);
+
+    // Check if there are new messages
+    final chat = applicationProvider.chat;
+    if (chat != null &&
+        chat['messages'] != null &&
+        chat['messages'].isNotEmpty) {
+      final latestMessageId = chat['messages'].last['_id'] ?? '';
+
+      // If there's a new message, scroll to bottom
+      if (_lastMessageId != null && _lastMessageId != latestMessageId) {
+        _lastMessageId = latestMessageId;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToBottom();
+        });
+      } else if (_lastMessageId == null) {
+        _lastMessageId = latestMessageId;
+      }
+    }
   }
 
   Future<void> _sendMessage() async {
@@ -51,7 +110,7 @@ class _ChatScreenState extends State<ChatScreen> {
     await applicationProvider.sendChatMessage(widget.applicationId, message);
 
     // Reload chat to show new message
-    await _loadChat();
+    await _loadChatSilently();
 
     // Scroll to bottom
     _scrollToBottom();
@@ -311,12 +370,5 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (e) {
       return '';
     }
-  }
-
-  @override
-  void dispose() {
-    _messageController.dispose();
-    _scrollController.dispose();
-    super.dispose();
   }
 }

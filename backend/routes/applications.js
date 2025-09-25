@@ -723,4 +723,83 @@ router.get('/:id/cv', auth, async (req, res) => {
 	}
 });
 
+// @route   DELETE /api/applications/:id
+// @desc    Cancel/Delete application (Talent only)
+// @access  Private (Talent only)
+router.delete('/:id', auth, async (req, res) => {
+	try {
+		const { _id: userId, role } = req.user;
+		const applicationId = req.params.id;
+
+		// Validate ObjectId format
+		if (!applicationId.match(/^[0-9a-fA-F]{24}$/)) {
+			return res.status(400).json({
+				success: false,
+				message: 'Invalid application ID format',
+			});
+		}
+
+		// Find application
+		const application = await Application.findById(applicationId)
+			.populate('talentId')
+			.populate('jobId')
+			.populate('companyId');
+
+		if (!application) {
+			return res.status(404).json({
+				success: false,
+				message: 'Lamaran tidak ditemukan',
+			});
+		}
+
+		// Check if user is the talent who applied or admin
+		if (role === 'talent') {
+			if (application.talentId.userId.toString() !== userId.toString()) {
+				return res.status(403).json({
+					success: false,
+					message: 'Anda tidak memiliki akses untuk membatalkan lamaran ini',
+				});
+			}
+		} else if (role !== 'admin') {
+			return res.status(403).json({
+				success: false,
+				message: 'Akses ditolak',
+			});
+		}
+
+		// Check if application can be cancelled (only pending, reviewed, or interview status)
+		if (!['pending', 'reviewed', 'interview'].includes(application.status)) {
+			return res.status(400).json({
+				success: false,
+				message: `Lamaran dengan status '${application.status}' tidak dapat dibatalkan`,
+			});
+		}
+
+		// Update status to cancelled instead of deleting
+		application.status = 'cancelled';
+		application.statusHistory.push({
+			status: 'cancelled',
+			changedAt: new Date(),
+			changedBy: userId,
+			notes:
+				role === 'talent' ? 'Dibatalkan oleh pelamar' : 'Dibatalkan oleh admin',
+		});
+		application.updatedAt = new Date();
+
+		await application.save();
+
+		res.json({
+			success: true,
+			message: 'Lamaran berhasil dibatalkan',
+			data: { application },
+		});
+	} catch (error) {
+		console.error('Cancel application error:', error);
+		res.status(500).json({
+			success: false,
+			message: 'Terjadi kesalahan pada server',
+		});
+	}
+});
+
 module.exports = router;

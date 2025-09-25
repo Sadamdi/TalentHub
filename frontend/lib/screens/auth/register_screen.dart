@@ -23,10 +23,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _locationController = TextEditingController();
   final _phoneNumberController = TextEditingController();
   final _dateOfBirthController = TextEditingController();
+  final _firstNameKey = GlobalKey();
+  final _lastNameKey = GlobalKey();
+  final _emailKey = GlobalKey();
+  final _passwordKey = GlobalKey();
+  final _confirmPasswordKey = GlobalKey();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   String _selectedGender = 'male';
   String _selectedRole = 'talent';
+  String? _firstNameError;
+  String? _lastNameError;
+  String? _emailError;
+  String? _passwordError;
+  String? _confirmPasswordError;
 
   @override
   void dispose() {
@@ -41,8 +51,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  void _scrollToFirstError() {
+    // Scroll ke field pertama yang error
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_firstNameController.text.isEmpty) {
+        Scrollable.ensureVisible(_firstNameKey.currentContext!);
+      } else if (_lastNameController.text.isEmpty) {
+        Scrollable.ensureVisible(_lastNameKey.currentContext!);
+      } else if (_emailController.text.isEmpty ||
+          !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+              .hasMatch(_emailController.text)) {
+        Scrollable.ensureVisible(_emailKey.currentContext!);
+      } else if (_passwordController.text.isEmpty ||
+          _passwordController.text.length < 6) {
+        Scrollable.ensureVisible(_passwordKey.currentContext!);
+      } else if (_confirmPasswordController.text.isEmpty ||
+          _confirmPasswordController.text != _passwordController.text) {
+        Scrollable.ensureVisible(_confirmPasswordKey.currentContext!);
+      }
+    });
+  }
+
   Future<void> _handleRegister() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      _scrollToFirstError();
+      return;
+    }
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
@@ -204,51 +238,100 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         _buildInputField(
                           controller: _firstNameController,
                           hintText: 'First Name',
+                          fieldKey: _firstNameKey,
+                          errorText: _firstNameError,
+                          onClearError: () {
+                            setState(() {
+                              _firstNameError = null;
+                            });
+                          },
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Nama depan diperlukan';
+                              setState(() {
+                                _firstNameError = 'Nama depan diperlukan';
+                              });
+                              return '';
                             }
+                            setState(() {
+                              _firstNameError = null;
+                            });
                             return null;
                           },
                         ),
 
-                        const SizedBox(height: 16),
+                        SizedBox(height: _firstNameError != null ? 12 : 16),
 
                         _buildInputField(
                           controller: _lastNameController,
                           hintText: 'Last Name',
+                          fieldKey: _lastNameKey,
+                          errorText: _lastNameError,
+                          onClearError: () {
+                            setState(() {
+                              _lastNameError = null;
+                            });
+                          },
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Nama belakang diperlukan';
+                              setState(() {
+                                _lastNameError = 'Nama belakang diperlukan';
+                              });
+                              return '';
                             }
+                            setState(() {
+                              _lastNameError = null;
+                            });
                             return null;
                           },
                         ),
 
-                        const SizedBox(height: 16),
+                        SizedBox(height: _lastNameError != null ? 12 : 16),
 
                         _buildInputField(
                           controller: _emailController,
                           hintText: 'Email',
                           keyboardType: TextInputType.emailAddress,
+                          fieldKey: _emailKey,
+                          errorText: _emailError,
+                          onClearError: () {
+                            setState(() {
+                              _emailError = null;
+                            });
+                          },
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Email diperlukan';
+                              setState(() {
+                                _emailError = 'Email diperlukan';
+                              });
+                              return '';
                             }
                             if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                                 .hasMatch(value)) {
-                              return 'Format email tidak valid';
+                              setState(() {
+                                _emailError = 'Format email tidak valid';
+                              });
+                              return '';
                             }
+                            setState(() {
+                              _emailError = null;
+                            });
                             return null;
                           },
                         ),
 
-                        const SizedBox(height: 16),
+                        SizedBox(height: _emailError != null ? 12 : 16),
 
                         _buildInputField(
                           controller: _passwordController,
                           hintText: 'Create a Password',
                           obscureText: _obscurePassword,
+                          fieldKey: _passwordKey,
+                          errorText: _passwordError,
+                          onClearError: () {
+                            setState(() {
+                              _passwordError = null;
+                            });
+                          },
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscurePassword
@@ -263,21 +346,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Password diperlukan';
+                              setState(() {
+                                _passwordError = 'Password diperlukan';
+                              });
+                              return '';
                             }
                             if (value.length < 6) {
-                              return 'Password minimal 6 karakter';
+                              setState(() {
+                                _passwordError = 'Password minimal 6 karakter';
+                              });
+                              return '';
                             }
+                            setState(() {
+                              _passwordError = null;
+                            });
                             return null;
                           },
                         ),
 
-                        const SizedBox(height: 16),
+                        SizedBox(height: _passwordError != null ? 12 : 16),
 
                         _buildInputField(
                           controller: _confirmPasswordController,
                           hintText: 'Confirm Password',
                           obscureText: _obscureConfirmPassword,
+                          fieldKey: _confirmPasswordKey,
+                          errorText: _confirmPasswordError,
+                          onClearError: () {
+                            setState(() {
+                              _confirmPasswordError = null;
+                            });
+                          },
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscureConfirmPassword
@@ -293,11 +392,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Konfirmasi password diperlukan';
+                              setState(() {
+                                _confirmPasswordError =
+                                    'Konfirmasi password diperlukan';
+                              });
+                              return '';
                             }
                             if (value != _passwordController.text) {
-                              return 'Password tidak sama';
+                              setState(() {
+                                _confirmPasswordError = 'Password tidak sama';
+                              });
+                              return '';
                             }
+                            setState(() {
+                              _confirmPasswordError = null;
+                            });
                             return null;
                           },
                         ),
@@ -595,59 +704,90 @@ class _RegisterScreenState extends State<RegisterScreen> {
     bool obscureText = false,
     Widget? suffixIcon,
     String? Function(String?)? validator,
+    GlobalKey? fieldKey,
+    String? errorText,
+    VoidCallback? onClearError,
   }) {
-    return Container(
-      height: 42,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadowMedium,
-            blurRadius: 10,
-            offset: Offset(1, 0),
+    return Column(
+      key: fieldKey,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 52,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: errorText != null
+                ? Border.all(color: AppColors.error, width: 1)
+                : null,
+            boxShadow: const [
+              BoxShadow(
+                color: AppColors.shadowMedium,
+                blurRadius: 10,
+                offset: Offset(1, 0),
+              ),
+              BoxShadow(
+                color: AppColors.shadowLight,
+                blurRadius: 4,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
-          BoxShadow(
-            color: AppColors.shadowLight,
-            blurRadius: 4,
-            offset: Offset(0, 4),
+          child: TextFormField(
+            controller: controller,
+            keyboardType: keyboardType,
+            obscureText: obscureText,
+            maxLines: 1,
+            onTap: onClearError,
+            onChanged: (value) {
+              if (onClearError != null) {
+                onClearError();
+              }
+
+              // Auto-format email untuk field email
+              if (hintText == 'Email' &&
+                  value.isNotEmpty &&
+                  !value.contains('@') &&
+                  value.contains(' ')) {
+                String formatted = value.replaceAll(' ', '@');
+                controller.value = TextEditingValue(
+                  text: formatted,
+                  selection: TextSelection.collapsed(offset: formatted.length),
+                );
+              }
+            },
+            decoration: InputDecoration(
+              hintText: hintText,
+              errorStyle: const TextStyle(height: 0),
+              hintStyle: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 16,
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w400,
+                height: 1.50,
+              ),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.zero,
+              suffixIcon: suffixIcon,
+            ),
+            validator: validator,
           ),
-        ],
-      ),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboardType,
-        obscureText: obscureText,
-        decoration: InputDecoration(
-          labelText: hintText,
-          hintText: 'Masukkan ${hintText.toLowerCase()}',
-          labelStyle: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 16,
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w400,
-            height: 1.50,
-          ),
-          hintStyle: const TextStyle(
-            color: AppColors.textLight,
-            fontSize: 14,
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w400,
-            height: 1.50,
-          ),
-          floatingLabelStyle: const TextStyle(
-            color: AppColors.primary,
-            fontSize: 16,
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w500,
-          ),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.zero,
-          suffixIcon: suffixIcon,
         ),
-        validator: validator,
-      ),
+        // Error message dengan space sendiri
+        if (errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 12),
+            child: Text(
+              errorText,
+              style: const TextStyle(
+                color: AppColors.error,
+                fontSize: 12,
+                fontFamily: 'Poppins',
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
