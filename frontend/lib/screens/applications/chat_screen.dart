@@ -50,6 +50,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _loadChat() async {
+    print(
+        '🔍 ChatScreen: Loading chat for application: ${widget.applicationId}');
     setState(() {
       _isLoading = true;
     });
@@ -64,6 +66,11 @@ class _ChatScreenState extends State<ChatScreen> {
         chat['messages'] != null &&
         chat['messages'].isNotEmpty) {
       _lastMessageId = chat['messages'].last['_id'] ?? '';
+      print(
+          '✅ ChatScreen: Chat loaded with ${chat['messages'].length} messages');
+    } else {
+      print(
+          '⚠️ ChatScreen: No chat or messages found for application: ${widget.applicationId}');
     }
 
     setState(() {

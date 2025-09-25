@@ -31,8 +31,8 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
   }
 
   void _startPolling() {
-    // Poll for new messages every 10 seconds (lebih jarang untuk menghindari konflik)
-    _pollTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+    // Poll for new messages every 3 seconds untuk real-time experience
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (mounted) {
         _loadApplicationsSilently();
       }
@@ -60,12 +60,14 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
     if (!mounted) return;
     final applicationProvider =
         Provider.of<ApplicationProvider>(context, listen: false);
-    // Jangan load jika sedang loading
-    if (!applicationProvider.isLoading) {
-      applicationProvider.getCompanyApplications().catchError((error) {
-        print('Error loading chat applications silently: $error');
-      });
-    }
+    // Load tanpa loading indicator untuk silent refresh
+    print('🔄 CompanyChatScreen: Silent refresh triggered');
+    applicationProvider.getCompanyApplications(silent: true).then((_) {
+      print('✅ CompanyChatScreen: Silent refresh completed');
+      // UI will auto-update via Consumer<ApplicationProvider>
+    }).catchError((error) {
+      print('❌ CompanyChatScreen: Silent refresh error: $error');
+    });
   }
 
   @override
@@ -274,12 +276,21 @@ class _CompanyChatScreenState extends State<CompanyChatScreen> {
           ),
         ),
         onTap: () {
+          print(
+              '🎯 CompanyChatScreen: Opening chat for application: ${app.id}');
+          print('👤 CompanyChatScreen: Applicant: ${app.applicantName}');
           // Navigate to chat screen for this application
-          Navigator.of(context).push(
+          Navigator.of(context)
+              .push(
             MaterialPageRoute(
               builder: (context) => ChatScreen(applicationId: app.id),
             ),
-          );
+          )
+              .then((_) {
+            // Refresh applications when returning from chat
+            print('🔄 CompanyChatScreen: Refreshing after returning from chat');
+            _loadApplications();
+          });
         },
       ),
     );
